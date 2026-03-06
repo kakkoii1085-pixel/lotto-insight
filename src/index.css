@@ -1,0 +1,21 @@
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #1f1f22;
+  color: white;
+  font-family: "Segoe UI", "Noto Sans KR", Arial, sans-serif;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input {
+  font: inherit;
+}
