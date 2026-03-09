@@ -1,112 +1,112 @@
 import { useEffect, useState } from "react";
 
-type DrawRow = {
-  draw: number;
+type LottoRow = {
+  round: number;
+  date: string;
   numbers: number[];
-  bonus: number | null;
+  bonus: number;
 };
 
-function parseDraws(csvText: string): DrawRow[] {
-  const lines = csvText
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  const rows: DrawRow[] = [];
-
-  for (const line of lines) {
-    const cols = line.split(",").map((v) => v.trim());
-
-    const drawCandidate = Number(cols[0]);
-    const nums = cols
-      .map((v) => Number(v))
-      .filter((v) => !Number.isNaN(v) && v >= 1 && v <= 45);
-
-    if (nums.length >= 6) {
-      rows.push({
-        draw: Number.isNaN(drawCandidate) ? 0 : drawCandidate,
-        numbers: nums.slice(0, 6).sort((a, b) => a - b),
-        bonus: nums.length >= 7 ? nums[6] : null,
-      });
-    }
-  }
-
-  return rows
-    .filter((row) => row.numbers.length === 6)
-    .sort((a, b) => b.draw - a.draw);
-}
-
-function ballClass(num: number) {
+function getBallClass(num: number) {
   if (num <= 10) return "ball yellow";
-  if (num <= 20) return "ball blue";
+  if (num <= 20) return "ball navy";
   if (num <= 30) return "ball red";
   if (num <= 40) return "ball gray";
   return "ball green";
 }
 
 export default function History() {
-  const [draws, setDraws] = useState<DrawRow[]>([]);
+  const [rows, setRows] = useState<LottoRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("/lotto_1_1213_numbers.csv")
-      .then((res) => res.text())
-      .then((csvText) => {
-        setDraws(parseDraws(csvText).slice(0, 30));
-        setLoading(false);
+    fetch("/lotto_numbers.csv")
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`파일 요청 실패: ${res.status}`);
+        }
+        return res.text();
       })
-      .catch(() => {
-        setDraws([]);
+      .then((csvText) => {
+        const lines = csvText
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean);
+
+        if (lines.length <= 1) {
+          throw new Error("CSV 데이터가 비어 있습니다.");
+        }
+
+        const parsed: LottoRow[] = lines
+          .slice(1)
+          .map((line) => {
+            const cols = line.split(",");
+
+            return {
+              round: Number(cols[0]),
+              date: cols[1],
+              numbers: [
+                Number(cols[2]),
+                Number(cols[3]),
+                Number(cols[4]),
+                Number(cols[5]),
+                Number(cols[6]),
+                Number(cols[7]),
+              ],
+              bonus: Number(cols[8]),
+            };
+          })
+          .filter(
+            (row) =>
+              row.round &&
+              row.date &&
+              row.numbers.length === 6 &&
+              row.numbers.every((n) => !Number.isNaN(n)) &&
+              !Number.isNaN(row.bonus)
+          )
+          .sort((a, b) => b.round - a.round)
+          .slice(0, 30);
+
+        setRows(parsed);
+      })
+      .catch((err) => {
+        console.error(err);
+        setError("데이터를 불러오지 못했습니다.");
+      })
+      .finally(() => {
         setLoading(false);
       });
   }, []);
 
   return (
-    <div className="container">
-      <div className="card">
-        <h1 className="page-title">역대 당첨번호</h1>
-        <p className="page-desc">최근 30개 회차 기준으로 표시합니다.</p>
+    <div className="page-container">
+      <div className="content-card">
+        <h1>역대 당첨번호</h1>
+        <p>최근 30개 회차 기준으로 표시합니다.</p>
 
-        {loading && <p className="empty-text">불러오는 중...</p>}
+        {loading && <p>불러오는 중...</p>}
+        {error && <p>{error}</p>}
 
-        {!loading && draws.length === 0 && (
-          <p className="empty-text">데이터를 불러오지 못했습니다.</p>
-        )}
+        {!loading && !error && (
+          <div className="history-list">
+            {rows.map((row) => (
+              <div key={row.round} className="history-row">
+                <div className="history-header">
+                  <strong>{row.round}회</strong> <span>{row.date}</span>
+                </div>
 
-        {!loading && draws.length > 0 && (
-          <div className="result-table-wrap">
-            <table className="result-table">
-              <thead>
-                <tr>
-                  <th>회차</th>
-                  <th>당첨번호</th>
-                  <th>보너스</th>
-                </tr>
-              </thead>
-              <tbody>
-                {draws.map((row) => (
-                  <tr key={`${row.draw}-${row.numbers.join("-")}`}>
-                    <td>{row.draw}회</td>
-                    <td>
-                      <div className="ball-row">
-                        {row.numbers.map((num) => (
-                          <span key={num} className={ballClass(num)}>
-                            {num}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td>
-                      {row.bonus ? (
-                        <span className={ballClass(row.bonus)}>{row.bonus}</span>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                <div className="ball-row">
+                  {row.numbers.map((num, idx) => (
+                    <span key={idx} className={getBallClass(num)}>
+                      {num}
+                    </span>
+                  ))}
+                  <span className="bonus-plus">+</span>
+                  <span className={getBallClass(row.bonus)}>{row.bonus}</span>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

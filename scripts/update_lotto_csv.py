@@ -10,7 +10,6 @@ HEADERS = {
     "Referer": "https://www.dhlottery.co.kr/",
 }
 
-
 def ensure_file_exists():
     if not os.path.exists(FILE):
         os.makedirs("public", exist_ok=True)
@@ -28,96 +27,85 @@ def ensure_file_exists():
                 "보너스",
             ])
 
-
 def get_last_draw_no():
     ensure_file_exists()
 
     with open(FILE, "r", encoding="utf-8-sig", newline="") as f:
         rows = list(csv.reader(f))
 
-    # 헤더만 있는 경우
     if len(rows) <= 1:
         return 0
 
-    last_row = rows[-1]
-
     try:
-        return int(last_row[0])
-    except Exception:
+        return int(rows[-1][0])
+    except:
         return 0
 
-
-def fetch_draw(drwno: int):
+def fetch_draw(drwno):
     url = API.format(drwno)
 
     try:
-        r = requests.get(url, headers=HEADERS, timeout=15)
-
-        content_type = r.headers.get("Content-Type", "")
-        text_preview = r.text[:120].replace("\n", " ")
-
-        if "json" not in content_type.lower():
-            print(f"[스킵] {drwno}회: JSON 응답 아님")
-            print(f"       Content-Type: {content_type}")
-            print(f"       응답 앞부분: {text_preview}")
-            return None
-
-        data = r.json()
-
-        if data.get("returnValue") != "success":
-            print(f"[스킵] {drwno}회: success 아님")
-            return None
-
-        return [
-            data["drwNo"],
-            data["drwNoDate"],
-            data["drwtNo1"],
-            data["drwtNo2"],
-            data["drwtNo3"],
-            data["drwtNo4"],
-            data["drwtNo5"],
-            data["drwtNo6"],
-            data["bnusNo"],
-        ]
-
-    except Exception as e:
-        print(f"[에러] {drwno}회 조회 실패: {e}")
+        r = requests.get(url, headers=HEADERS, timeout=10)
+        r.raise_for_status()
+    except requests.RequestException as e:
+        print(f"[오류] {drwno}회 요청 실패: {e}")
         return None
 
+    content_type = r.headers.get("Content-Type", "")
 
-def append_rows(rows):
-    if not rows:
+    try:
+        data = r.json()
+    except ValueError:
+        print(f"[중단] {drwno}회: 아직 발표 전이거나 JSON 응답이 아닙니다.")
+        print(f"       Content-Type: {content_type}")
+        return None
+
+    if data.get("returnValue") != "success":
+        print(f"[중단] {drwno}회: 아직 발표되지 않았습니다.")
+        return None
+
+    return [
+        data["drwNo"],
+        data["drwNoDate"],
+        data["drwtNo1"],
+        data["drwtNo2"],
+        data["drwtNo3"],
+        data["drwtNo4"],
+        data["drwtNo5"],
+        data["drwtNo6"],
+        data["bnusNo"],
+    ]
+
+def append_rows(rows_to_add):
+    if not rows_to_add:
         return
 
     with open(FILE, "a", encoding="utf-8-sig", newline="") as f:
         writer = csv.writer(f)
-        writer.writerows(rows)
-
+        writer.writerows(rows_to_add)
 
 def main():
     last_draw = get_last_draw_no()
     print(f"현재 마지막 회차: {last_draw}")
 
     new_rows = []
+    next_draw = last_draw + 1
 
-    # 다음 회차부터 최대 3회까지 시도
-    # 보통은 1회만 추가되지만, 누락 대비용
-    for drwno in range(last_draw + 1, last_draw + 4):
-        row = fetch_draw(drwno)
-
+    while True:
+        row = fetch_draw(next_draw)
         if row is None:
             break
 
+        print(f"[추가] {next_draw}회")
         new_rows.append(row)
-        print(f"[추가 성공] {drwno}회")
-
-    if not new_rows:
-        print("업데이트 없음")
-        return
+        next_draw += 1
 
     append_rows(new_rows)
-    print(f"업데이트 완료: {len(new_rows)}개 추가")
 
+    if new_rows:
+        print(f"업데이트 완료: {len(new_rows)}개 회차 추가")
+    else:
+        print("업데이트 없음 (현재 최신 상태)")
 
 if __name__ == "__main__":
     main()
