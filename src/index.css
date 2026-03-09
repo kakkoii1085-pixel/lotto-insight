@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 * {
   box-sizing: border-box;
 }
@@ -534,4 +535,26 @@ button.secondary:hover {
   .barRow {
     grid-template-columns: 48px 1fr 64px;
   }
+=======
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #1f1f22;
+  color: white;
+  font-family: "Segoe UI", "Noto Sans KR", Arial, sans-serif;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input {
+  font: inherit;
+>>>>>>> 54a9a93b722b6dc5ac496a8cb897298b7a2890bb
 }
