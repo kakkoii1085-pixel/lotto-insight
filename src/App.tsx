@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
-import Analysis from "./pages/analysis";
+import Analysis from "./pages/Analysis";
 import Generator from "./pages/Generator";
 import History from "./pages/History";
 import HotNumbers from "./pages/HotNumbers";
@@ -14,7 +14,7 @@ export default function App() {
 
       <Routes>
         <Route path="/" element={<Navigate to="/analysis" replace />} />
-        <Route path="/analysis" element={<Analysis />} />
+        <Route path="/Analysis" element={<Analysis />} />
         <Route path="/generator" element={<Generator />} />
         <Route path="/hot-numbers" element={<HotNumbers />} />
         <Route path="/purchase" element={<Purchase />} />
