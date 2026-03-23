@@ -520,3 +520,39 @@ body {
     font-size: 16px;
   }
 }
+.number-grid{
+display:grid;
+grid-template-columns:repeat(9,1fr);
+gap:8px;
+margin-top:12px;
+}
+
+.generator-controls{
+display:flex;
+gap:20px;
+align-items:center;
+margin-top:16px;
+}
+
+.generator-controls input,
+.generator-controls select{
+margin-left:6px;
+padding:4px 6px;
+}
+
+.generator-controls button{
+padding:8px 16px;
+border:none;
+border-radius:10px;
+background:#22c55e;
+color:white;
+cursor:pointer;
+}
+
+.ball.exclude{
+background:#333 !important;
+opacity:.4;
+}
+.detail-sort-toggle button{
+  margin-left:6px;
+}

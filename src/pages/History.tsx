@@ -1,11 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type LottoRow = {
   round: number;
   date: string;
-  numbers: number[];
+  nums: number[];
   bonus: number;
 };
+
+type PrizeRow = {
+  rank: string;
+  amount: number;
+  winners: number;
+};
+
+type DetailMap = Record<
+  string,
+  {
+    round: number;
+    prizes: PrizeRow[];
+  }
+>;
 
 function getBallClass(num: number) {
   if (num <= 10) return "ball yellow";
@@ -15,101 +29,267 @@ function getBallClass(num: number) {
   return "ball green";
 }
 
+function formatMoney(value: number) {
+  return `${value.toLocaleString("ko-KR")}원`;
+}
+
 export default function History() {
   const [rows, setRows] = useState<LottoRow[]>([]);
+  const [details, setDetails] = useState<DetailMap>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [sortDesc, setSortDesc] = useState(true);
+  const [searchRound, setSearchRound] = useState("");
+  const [selectedRound, setSelectedRound] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch("/lotto_numbers.csv")
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(`파일 요청 실패: ${res.status}`);
+    async function loadData() {
+      try {
+        setLoading(true);
+        setError("");
+
+        const [csvRes, detailRes] = await Promise.all([
+          fetch("/lotto_numbers.csv"),
+          fetch("/lotto_history_details.json").catch(() => null as any),
+        ]);
+
+        const csvText = await csvRes.text();
+
+        let detailJson: DetailMap = {};
+        try {
+          if (detailRes && detailRes.ok) {
+            detailJson = await detailRes.json();
+          }
+        } catch {
+          detailJson = {};
         }
-        return res.text();
-      })
-      .then((csvText) => {
+
         const lines = csvText
           .split("\n")
           .map((line) => line.trim())
           .filter(Boolean);
 
-        if (lines.length <= 1) {
-          throw new Error("CSV 데이터가 비어 있습니다.");
+        const parsed: LottoRow[] = [];
+
+        for (let i = 1; i < lines.length; i += 1) {
+          const cols = lines[i].split(",");
+
+          if (cols.length < 9) continue;
+
+          const round = Number(cols[0]);
+          const date = cols[1];
+          const nums = cols.slice(2, 8).map((v) => Number(v));
+          const bonus = Number(cols[8]);
+
+          if (
+            !Number.isFinite(round) ||
+            nums.some((n) => !Number.isFinite(n)) ||
+            !Number.isFinite(bonus)
+          ) {
+            continue;
+          }
+
+          parsed.push({
+            round,
+            date,
+            nums,
+            bonus,
+          });
         }
 
-        const parsed: LottoRow[] = lines
-          .slice(1)
-          .map((line) => {
-            const cols = line.split(",");
-
-            return {
-              round: Number(cols[0]),
-              date: cols[1],
-              numbers: [
-                Number(cols[2]),
-                Number(cols[3]),
-                Number(cols[4]),
-                Number(cols[5]),
-                Number(cols[6]),
-                Number(cols[7]),
-              ],
-              bonus: Number(cols[8]),
-            };
-          })
-          .filter(
-            (row) =>
-              row.round &&
-              row.date &&
-              row.numbers.length === 6 &&
-              row.numbers.every((n) => !Number.isNaN(n)) &&
-              !Number.isNaN(row.bonus)
-          )
-          .sort((a, b) => b.round - a.round)
-          .slice(0, 30);
+        parsed.sort((a, b) => b.round - a.round);
 
         setRows(parsed);
-      })
-      .catch((err) => {
-        console.error(err);
-        setError("데이터를 불러오지 못했습니다.");
-      })
-      .finally(() => {
+        setDetails(detailJson);
+
+        if (parsed.length > 0) {
+          setSelectedRound(parsed[0].round);
+        }
+      } catch (e) {
+        console.error(e);
+        setError("역대 당첨번호 데이터를 불러오지 못했습니다.");
+      } finally {
         setLoading(false);
-      });
+      }
+    }
+
+    loadData();
   }, []);
 
+  const filteredRows = useMemo(() => {
+    let result = [...rows];
+
+    if (searchRound.trim()) {
+      result = result.filter((row) =>
+        String(row.round).includes(searchRound.trim())
+      );
+    }
+
+    result.sort((a, b) => (sortDesc ? b.round - a.round : a.round - b.round));
+    return result;
+  }, [rows, searchRound, sortDesc]);
+
+  const selectedRow = useMemo(() => {
+    if (selectedRound == null) return filteredRows[0] ?? null;
+    return rows.find((row) => row.round === selectedRound) ?? filteredRows[0] ?? null;
+  }, [rows, filteredRows, selectedRound]);
+
+  const selectedDetail = useMemo(() => {
+    if (!selectedRow) return null;
+    return details[String(selectedRow.round)] ?? null;
+  }, [details, selectedRow]);
+
+  if (loading) {
+    return (
+      <div className="history-page">
+        <div className="history-loading">역대 당첨번호 불러오는 중...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="history-page">
+        <div className="history-error">{error}</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="page-container">
-      <div className="content-card">
-        <h1>역대 당첨번호</h1>
-        <p>최근 30개 회차 기준으로 표시합니다.</p>
+    <div className="history-page">
+      <section className="history-header-card">
+        <div>
+          <p className="history-eyebrow">LOTTO HISTORY</p>
+          <h2 className="history-title">역대 당첨번호</h2>
+          <p className="history-subtitle">
+            회차별 당첨번호와 순위별 당첨자 수, 당첨금액을 한 번에 확인할 수 있습니다.
+          </p>
+        </div>
 
-        {loading && <p>불러오는 중...</p>}
-        {error && <p>{error}</p>}
+        <div className="history-toolbar">
+          <input
+            className="history-search"
+            type="text"
+            value={searchRound}
+            onChange={(e) => setSearchRound(e.target.value)}
+            placeholder="회차 검색 (예: 1215)"
+          />
 
-        {!loading && !error && (
-          <div className="history-list">
-            {rows.map((row) => (
-              <div key={row.round} className="history-row">
-                <div className="history-header">
-                  <strong>{row.round}회</strong> <span>{row.date}</span>
+          <button
+            className="history-sort-btn"
+            type="button"
+            onClick={() => setSortDesc((prev) => !prev)}
+          >
+            {sortDesc ? "최신순" : "과거순"}
+          </button>
+        </div>
+      </section>
+
+      <section className="history-layout">
+        <div className="history-list-card">
+          <div className="history-list-head">
+            <span className="col-round">회차</span>
+            <span className="col-date">추첨일</span>
+            <span className="col-numbers">당첨번호</span>
+            <span className="col-bonus">보너스</span>
+          </div>
+
+          <div className="history-list-body">
+            {filteredRows.map((row) => {
+              const isActive = selectedRow?.round === row.round;
+
+              return (
+                <button
+                  key={row.round}
+                  type="button"
+                  className={`history-row ${isActive ? "active" : ""}`}
+                  onClick={() => setSelectedRound(row.round)}
+                >
+                  <span className="col-round">{row.round}</span>
+                  <span className="col-date">{row.date}</span>
+
+                  <span className="col-numbers history-balls">
+                    {row.nums.map((num) => (
+                      <span key={num} className={getBallClass(num)}>
+                        {num}
+                      </span>
+                    ))}
+                  </span>
+
+                  <span className="col-bonus history-bonus-wrap">
+                    <span className={getBallClass(row.bonus)}>{row.bonus}</span>
+                  </span>
+                </button>
+              );
+            })}
+
+            {filteredRows.length === 0 && (
+              <div className="history-empty">검색된 회차가 없습니다.</div>
+            )}
+          </div>
+        </div>
+
+        <div className="history-detail-card">
+          {selectedRow ? (
+            <>
+              <div className="history-detail-top">
+                <div>
+                  <p className="history-detail-label">선택 회차</p>
+                  <h3 className="history-detail-round">{selectedRow.round}회</h3>
+                  <p className="history-detail-date">{selectedRow.date} 추첨</p>
                 </div>
+              </div>
 
-                <div className="ball-row">
-                  {row.numbers.map((num, idx) => (
-                    <span key={idx} className={getBallClass(num)}>
+              <div className="history-detail-section">
+                <div className="history-detail-section-title">당첨번호</div>
+                <div className="history-detail-balls">
+                  {selectedRow.nums.map((num) => (
+                    <span key={num} className={getBallClass(num)}>
                       {num}
                     </span>
                   ))}
-                  <span className="bonus-plus">+</span>
-                  <span className={getBallClass(row.bonus)}>{row.bonus}</span>
+                  <span className="history-plus">+</span>
+                  <span className={getBallClass(selectedRow.bonus)}>
+                    {selectedRow.bonus}
+                  </span>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+
+              <div className="history-detail-section">
+                <div className="history-detail-section-title">
+                  순위별 당첨자 / 당첨금액
+                </div>
+
+                {selectedDetail?.prizes?.length ? (
+                  <div className="history-prize-table">
+                    <div className="history-prize-head">
+                      <span>순위</span>
+                      <span>당첨자 수</span>
+                      <span>총 당첨금</span>
+                    </div>
+
+                    {selectedDetail.prizes.map((prize) => (
+                      <div className="history-prize-row" key={prize.rank}>
+                        <span>{prize.rank}</span>
+                        <span>{prize.winners.toLocaleString("ko-KR")}명</span>
+                        <span>{formatMoney(prize.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="history-no-detail">
+                    순위별 당첨자 수 및 당첨금액 상세 정보는
+                    <br />
+                    update_lotto_history_details.py 추후 업데이트를 통해 제공될 예정입니다.
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="history-empty">선택된 회차가 없습니다.</div>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
