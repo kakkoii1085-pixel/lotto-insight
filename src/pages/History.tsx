@@ -48,20 +48,25 @@ export default function History() {
   const [searchRound, setSearchRound] = useState("");
   const [selectedRound, setSelectedRound] = useState<number | null>(null);
   const [prizeLoading, setPrizeLoading] = useState(false);
+  const [prizeFailed,  setPrizeFailed]  = useState(false);
 
   // 선택된 회차의 prize 없으면 자동 fetch (Vercel 프록시 → dhlottery 직접 순서로 시도)
   useEffect(() => {
     if (selectedRound == null) return;
     const key = String(selectedRound);
-    if (hasValidPrize(details[key])) return;
+    if (hasValidPrize(details[key])) { setPrizeFailed(false); return; }
 
     let cancelled = false;
     setPrizeLoading(true);
+    setPrizeFailed(false);
 
     async function fetchPrize() {
-      // 1차 시도: Vercel 서버리스 프록시
+      // 1차 시도: Vercel 서버리스 프록시 (5초 타임아웃)
       try {
-        const r = await fetch(`/api/prize?round=${selectedRound}`);
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 5000);
+        const r = await fetch(`/api/prize?round=${selectedRound}`, { signal: ctrl.signal });
+        clearTimeout(t);
         if (r.ok) {
           const data = await r.json();
           if (!cancelled && data?.prizes?.length &&
@@ -73,12 +78,15 @@ export default function History() {
         }
       } catch { /* 실패 시 2차 시도 */ }
 
-      // 2차 시도: dhlottery API 직접 호출 (CORS 허용 환경에서 동작)
+      // 2차 시도: dhlottery API 직접 호출 (3초 타임아웃)
       try {
+        const ctrl2 = new AbortController();
+        const t2 = setTimeout(() => ctrl2.abort(), 3000);
         const r2 = await fetch(
           `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${selectedRound}`,
-          { headers: { 'Accept': 'application/json' } }
+          { headers: { 'Accept': 'application/json' }, signal: ctrl2.signal }
         );
+        clearTimeout(t2);
         if (r2.ok) {
           const d = await r2.json();
           if (!cancelled && d?.returnValue === 'success') {
@@ -92,12 +100,13 @@ export default function History() {
             };
             if (parsed.prizes[0].winners > 0) {
               setDetails((prev) => ({ ...prev, [key]: parsed }));
+              if (!cancelled) { setPrizeLoading(false); return; }
             }
           }
         }
       } catch { /* CORS 차단 등 무시 */ }
 
-      if (!cancelled) setPrizeLoading(false);
+      if (!cancelled) { setPrizeLoading(false); setPrizeFailed(true); }
     }
 
     fetchPrize();
@@ -344,10 +353,20 @@ export default function History() {
                       </div>
                     ))}
                   </div>
+                ) : prizeFailed ? (
+                  <div className="history-no-detail">
+                    <span className="history-no-detail-icon">📋</span>
+                    당첨 정보를 가져올 수 없습니다
+                    <button
+                      className="subBtn"
+                      style={{marginLeft:10,fontSize:11,padding:'2px 8px'}}
+                      onClick={() => { setPrizeFailed(false); setPrizeLoading(false); }}
+                    >재시도</button>
+                  </div>
                 ) : (
                   <div className="history-no-detail">
-                    <span className="history-no-detail-icon">⏳</span>
-                    데이터를 불러오는 중입니다...
+                    <span className="history-no-detail-icon">📋</span>
+                    당첨 정보 없음
                   </div>
                 )}
               </div>
