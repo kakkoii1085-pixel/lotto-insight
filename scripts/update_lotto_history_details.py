@@ -1,7 +1,12 @@
+"""
+동행복권 JSON API를 사용하여 1등 당첨자수 / 당첨금액을 수집합니다.
+API: https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo={회차}
+응답 필드: firstPrzwnerCo (1등 당첨자수), firstWinamnt (1등 당첨금)
+"""
+
 import csv
 import json
 import os
-import re
 import time
 from typing import Dict, List
 
@@ -9,14 +14,12 @@ import requests
 
 CSV_FILE = "public/lotto_numbers.csv"
 DETAIL_JSON_FILE = "public/lotto_history_details.json"
-DETAIL_URL = "https://www.dhlottery.co.kr/gameResult.do?method=byWin&drwNo={}"
+API_URL = "https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo={}"
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
     "Referer": "https://www.dhlottery.co.kr/",
 }
-
-RANK_LABELS = ["1등", "2등", "3등", "4등", "5등"]
 
 
 def read_rounds_from_csv() -> List[int]:
@@ -34,66 +37,25 @@ def read_rounds_from_csv() -> List[int]:
     return sorted(set(rounds))
 
 
-def clean_amount(text: str) -> int:
-    nums = re.sub(r"[^0-9]", "", text)
-    return int(nums) if nums else 0
+def fetch_first_prize(round_no: int) -> Dict:
+    """JSON API에서 1등 당첨자수·금액 조회"""
+    url = API_URL.format(round_no)
+    r = requests.get(url, headers=HEADERS, timeout=10)
+    r.raise_for_status()
+    data = r.json()
 
-
-def extract_prize_rows(html: str) -> List[Dict]:
-    """
-    회차 상세 페이지의 순위표에서
-    순위 / 총당첨금 / 당첨게임수 를 추출
-    """
-    rows: List[Dict] = []
-
-    # 표 내부 tr을 넉넉하게 잡음
-    tr_blocks = re.findall(r"<tr>(.*?)</tr>", html, re.DOTALL | re.IGNORECASE)
-
-    for block in tr_blocks:
-        # 태그 제거용 원본 텍스트
-        text_only = re.sub(r"<[^>]+>", " ", block)
-        text_only = re.sub(r"\s+", " ", text_only).strip()
-
-        matched_rank = None
-        for rank in RANK_LABELS:
-            if rank in text_only:
-                matched_rank = rank
-                break
-
-        if not matched_rank:
-            continue
-
-        # 숫자 추출: 금액 / 당첨게임수
-        # 보통 "1등 25,354,253,628원 12" 같이 나옴
-        numbers = re.findall(r"[\d,]+", text_only)
-        if len(numbers) < 2:
-            continue
-
-        amount = clean_amount(numbers[0])
-        winners = clean_amount(numbers[1])
-
-        rows.append({
-            "rank": matched_rank,
-            "amount": amount,
-            "winners": winners,
-        })
-
-    # 1등~5등 순으로 정렬
-    rows.sort(key=lambda x: RANK_LABELS.index(x["rank"]))
-    return rows[:5]
-
-
-def fetch_round_detail(round_no: int) -> Dict:
-    url = DETAIL_URL.format(round_no)
-    res = requests.get(url, headers=HEADERS, timeout=15)
-    res.raise_for_status()
-    html = res.text
-
-    prize_rows = extract_prize_rows(html)
+    if data.get("returnValue") != "success":
+        return {"round": round_no, "prizes": []}
 
     return {
         "round": round_no,
-        "prizes": prize_rows,
+        "prizes": [
+            {
+                "rank": "1등",
+                "amount": int(data.get("firstWinamnt", 0)),
+                "winners": int(data.get("firstPrzwnerCo", 0)),
+            }
+        ],
     }
 
 
@@ -107,25 +69,29 @@ def load_existing_json() -> Dict[str, Dict]:
         return {}
 
 
+def has_valid_prize(entry: Dict) -> bool:
+    """이미 1등 데이터가 올바르게 저장돼 있으면 True"""
+    prizes = entry.get("prizes", [])
+    return any(p.get("rank") == "1등" and p.get("winners", 0) > 0 for p in prizes)
+
+
 def main():
     rounds = read_rounds_from_csv()
     existing = load_existing_json()
-
     updated: Dict[str, Dict] = dict(existing)
 
-    for round_no in rounds:
+    need_update = [r for r in rounds if not has_valid_prize(updated.get(str(r), {}))]
+    print(f"전체 회차: {len(rounds)}  /  업데이트 필요: {len(need_update)}회")
+
+    for round_no in need_update:
         key = str(round_no)
-
-        # 이미 있고 5개 순위가 다 있으면 스킵
-        if key in updated and len(updated[key].get("prizes", [])) >= 5:
-            print(f"[스킵] {round_no}회")
-            continue
-
         try:
-            detail = fetch_round_detail(round_no)
+            detail = fetch_first_prize(round_no)
             updated[key] = detail
-            print(f"[완료] {round_no}회")
-            time.sleep(0.25)
+            w = detail["prizes"][0]["winners"] if detail["prizes"] else 0
+            a = detail["prizes"][0]["amount"] if detail["prizes"] else 0
+            print(f"[완료] {round_no}회  1등 {w}명  {a:,}원")
+            time.sleep(0.2)
         except Exception as e:
             print(f"[실패] {round_no}회: {e}")
 
@@ -133,7 +99,7 @@ def main():
     with open(DETAIL_JSON_FILE, "w", encoding="utf-8") as f:
         json.dump(updated, f, ensure_ascii=False, indent=2)
 
-    print(f"\n저장 완료: {DETAIL_JSON_FILE}")
+    print(f"\n저장 완료: {DETAIL_JSON_FILE}  ({len(updated)}회차)")
 
 
 if __name__ == "__main__":

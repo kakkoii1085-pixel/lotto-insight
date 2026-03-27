@@ -57,6 +57,24 @@ export default function Navbar() {
           >
             역대당첨번호
           </NavLink>
+
+          <NavLink
+            to="/ticket-pattern"
+            className={({ isActive }) =>
+              `li-nav-btn ${isActive ? "active" : ""}`
+            }
+          >
+            용지패턴분석
+          </NavLink>
+
+          <NavLink
+            to="/annual-pattern"
+            className={({ isActive }) =>
+              `li-nav-btn ${isActive ? "active" : ""}`
+            }
+          >
+            연간분포패턴
+          </NavLink>
         </nav>
       </div>
     </header>

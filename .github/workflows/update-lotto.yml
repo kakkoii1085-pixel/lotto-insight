@@ -1,36 +1,39 @@
-name: Update Lotto CSV
+name: 로또 당첨번호 자동 업데이트
 
 on:
   schedule:
-    - cron: "0 15 * * 6"
-  workflow_dispatch:
-
-permissions:
-  contents: write
+    # 매주 일요일 12:00 KST (03:00 UTC)
+    - cron: '0 3 * * 0'
+  workflow_dispatch:  # 수동 실행 허용
 
 jobs:
-  update-lotto:
+  update-lotto-data:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: 저장소 체크아웃
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Python
+      - name: Python 설정
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.11'
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+      - name: 의존성 설치
+        run: pip install requests
 
-      - name: Run update script
+      - name: 당첨번호 CSV 업데이트
         run: python scripts/update_lotto_csv.py
 
-      - name: Commit and push if changed
+      - name: 1등 당첨자수/금액 상세정보 업데이트
+        run: python scripts/update_lotto_history_details.py
+
+      - name: 변경사항 커밋 & 푸시
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/lotto_numbers.csv
-          git diff --cached --quiet || git commit -m "chore: update lotto csv"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add public/lotto_numbers.csv public/lotto_history_details.json
+          git diff --staged --quiet || git commit -m "chore: 로또 당첨번호 자동 업데이트 $(date +'%Y-%m-%d')"
           git push

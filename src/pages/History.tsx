@@ -33,6 +33,12 @@ function formatMoney(value: number) {
   return `${value.toLocaleString("ko-KR")}원`;
 }
 
+// prize 데이터가 있는지 확인 (1등 당첨자수 > 0)
+function hasValidPrize(detail: DetailMap[string] | undefined): boolean {
+  if (!detail?.prizes?.length) return false;
+  return detail.prizes.some((p) => p.rank === "1등" && p.winners > 0);
+}
+
 export default function History() {
   const [rows, setRows] = useState<LottoRow[]>([]);
   const [details, setDetails] = useState<DetailMap>({});
@@ -41,6 +47,62 @@ export default function History() {
   const [sortDesc, setSortDesc] = useState(true);
   const [searchRound, setSearchRound] = useState("");
   const [selectedRound, setSelectedRound] = useState<number | null>(null);
+  const [prizeLoading, setPrizeLoading] = useState(false);
+
+  // 선택된 회차의 prize 없으면 자동 fetch (Vercel 프록시 → dhlottery 직접 순서로 시도)
+  useEffect(() => {
+    if (selectedRound == null) return;
+    const key = String(selectedRound);
+    if (hasValidPrize(details[key])) return;
+
+    let cancelled = false;
+    setPrizeLoading(true);
+
+    async function fetchPrize() {
+      // 1차 시도: Vercel 서버리스 프록시
+      try {
+        const r = await fetch(`/api/prize?round=${selectedRound}`);
+        if (r.ok) {
+          const data = await r.json();
+          if (!cancelled && data?.prizes?.length &&
+              data.prizes.some((p: {rank:string;winners:number}) => p.winners > 0)) {
+            setDetails((prev) => ({ ...prev, [key]: data }));
+            setPrizeLoading(false);
+            return;
+          }
+        }
+      } catch { /* 실패 시 2차 시도 */ }
+
+      // 2차 시도: dhlottery API 직접 호출 (CORS 허용 환경에서 동작)
+      try {
+        const r2 = await fetch(
+          `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${selectedRound}`,
+          { headers: { 'Accept': 'application/json' } }
+        );
+        if (r2.ok) {
+          const d = await r2.json();
+          if (!cancelled && d?.returnValue === 'success') {
+            const parsed = {
+              round: selectedRound,
+              prizes: [{
+                rank: '1등',
+                amount: parseInt(String(d.firstWinamnt ?? '0'), 10),
+                winners: parseInt(String(d.firstPrzwnerCo ?? '0'), 10),
+              }],
+            };
+            if (parsed.prizes[0].winners > 0) {
+              setDetails((prev) => ({ ...prev, [key]: parsed }));
+            }
+          }
+        }
+      } catch { /* CORS 차단 등 무시 */ }
+
+      if (!cancelled) setPrizeLoading(false);
+    }
+
+    fetchPrize();
+    return () => { cancelled = true; };
+  }, [selectedRound]);
 
   useEffect(() => {
     async function loadData() {
@@ -257,30 +319,35 @@ export default function History() {
 
               <div className="history-detail-section">
                 <div className="history-detail-section-title">
-                  순위별 당첨자 / 당첨금액
+                  1등 당첨자 / 당첨금액
                 </div>
 
-                {selectedDetail?.prizes?.length ? (
+                {prizeLoading ? (
+                  <div className="history-prize-loading">불러오는 중...</div>
+                ) : hasValidPrize(selectedDetail ?? undefined) ? (
                   <div className="history-prize-table">
                     <div className="history-prize-head">
                       <span>순위</span>
                       <span>당첨자 수</span>
-                      <span>총 당첨금</span>
+                      <span>1인당 당첨금</span>
                     </div>
 
-                    {selectedDetail.prizes.map((prize) => (
+                    {selectedDetail!.prizes.map((prize) => (
                       <div className="history-prize-row" key={prize.rank}>
-                        <span>{prize.rank}</span>
+                        <span className="history-prize-rank">{prize.rank}</span>
                         <span>{prize.winners.toLocaleString("ko-KR")}명</span>
-                        <span>{formatMoney(prize.amount)}</span>
+                        <span>
+                          {prize.winners > 0
+                            ? formatMoney(Math.floor(prize.amount / prize.winners))
+                            : formatMoney(prize.amount)}
+                        </span>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="history-no-detail">
-                    순위별 당첨자 수 및 당첨금액 상세 정보는
-                    <br />
-                    update_lotto_history_details.py 추후 업데이트를 통해 제공될 예정입니다.
+                    <span className="history-no-detail-icon">⏳</span>
+                    데이터를 불러오는 중입니다...
                   </div>
                 )}
               </div>

@@ -1,5 +1,10 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
-  ]
+    { "source": "/((?!api/).*)", "destination": "/" }
+  ],
+  "functions": {
+    "api/prize.js": {
+      "runtime": "nodejs18.x"
+    }
+  }
 }
