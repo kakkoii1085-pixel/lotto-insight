@@ -62,7 +62,7 @@ function parsePrizeCsv(text: string): { map: DetailMap; count: number; error?: s
 
   const roundIdx = header.findIndex(h => h === "회차");
   const winnersIdx = header.findIndex(h => h.includes("당첨자") || h.includes("1등인원") || h.includes("winners"));
-  const amountIdx = header.findIndex(h => h.includes("당첨금") || h.includes("금액") || h.includes("amount"));
+  const amountIdx = header.findIndex(h => h.includes("1게임당") || h.includes("인당") || h.includes("당첨금") || h.includes("금액") || h.includes("amount"));
 
   if (roundIdx < 0) return { map: {}, count: 0, error: "\"회차\" 열을 찾을 수 없습니다." };
   if (winnersIdx < 0) return { map: {}, count: 0, error: "당첨자 수 열을 찾을 수 없습니다. (\"1등당첨자\", \"당첨자\" 등 포함)" };
@@ -449,9 +449,7 @@ export default function History() {
                         <span className="history-prize-rank">{prize.rank}</span>
                         <span>{prize.winners.toLocaleString("ko-KR")}명</span>
                         <span>
-                          {prize.winners > 0
-                            ? formatMoney(Math.floor(prize.amount / prize.winners))
-                            : formatMoney(prize.amount)}
+                          {formatMoney(prize.amount)}
                         </span>
                       </div>
                     ))}
