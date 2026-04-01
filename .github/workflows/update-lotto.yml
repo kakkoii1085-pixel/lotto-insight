@@ -1,13 +1,14 @@
-name: 로또 당첨번호 자동 업데이트
+name: 로또 데이터 자동 업데이트
 
 on:
   schedule:
-    # 매주 일요일 12:00 KST (03:00 UTC)
-    - cron: '0 3 * * 0'
-  workflow_dispatch:  # 수동 실행 허용
+    # 매주 토요일 오후 9시 30분 KST (= 12:30 UTC) 실행
+    # 추첨은 토요일 오후 8시 35분 → 여유있게 1시간 후
+    - cron: "30 12 * * 6"
+  workflow_dispatch: # 수동 실행 버튼도 제공
 
 jobs:
-  update-lotto-data:
+  update:
     runs-on: ubuntu-latest
 
     steps:
@@ -16,24 +17,31 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Python 설정
+      - name: Python 설치
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: 의존성 설치
-        run: pip install requests
+        run: pip install requests urllib3
 
-      - name: 당첨번호 CSV 업데이트
+      - name: 새 회차 데이터 수집 (번호 + 1등 당첨정보)
         run: python scripts/update_lotto_csv.py
 
-      - name: 1등 당첨자수/금액 상세정보 업데이트
+      - name: 누락된 과거 당첨정보 보완
         run: python scripts/update_lotto_history_details.py
+        continue-on-error: true
 
-      - name: 변경사항 커밋 & 푸시
+      - name: 변경사항 확인
+        id: check_changes
         run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
+          git diff --quiet && echo "changed=false" >> $GITHUB_OUTPUT || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: 커밋 & 푸시
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add public/lotto_numbers.csv public/lotto_history_details.json
-          git diff --staged --quiet || git commit -m "chore: 로또 당첨번호 자동 업데이트 $(date +'%Y-%m-%d')"
+          git commit -m "chore: 로또 데이터 자동 업데이트 $(date +'%Y-%m-%d')"
           git push
