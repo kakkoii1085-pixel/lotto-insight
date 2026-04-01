@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type LottoRow = {
   round: number;
@@ -39,6 +39,51 @@ function hasValidPrize(detail: DetailMap[string] | undefined): boolean {
   return detail.prizes.some((p) => p.rank === "1등" && p.winners > 0);
 }
 
+const LS_KEY = "lottoDetails_v1";
+
+function saveDetailsToStorage(data: DetailMap) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch {}
+}
+
+function loadDetailsFromStorage(): DetailMap {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) return JSON.parse(raw) as DetailMap;
+  } catch {}
+  return {};
+}
+
+// CSV 텍스트에서 DetailMap 파싱 (회차,1등당첨자,1등당첨금 열 탐색)
+function parsePrizeCsv(text: string): { map: DetailMap; count: number; error?: string } {
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (lines.length < 2) return { map: {}, count: 0, error: "데이터가 없습니다." };
+
+  const header = lines[0].split(",").map(h => h.replace(/^\uFEFF/, "").trim());
+
+  const roundIdx = header.findIndex(h => h === "회차");
+  const winnersIdx = header.findIndex(h => h.includes("당첨자") || h.includes("1등인원") || h.includes("winners"));
+  const amountIdx = header.findIndex(h => h.includes("당첨금") || h.includes("금액") || h.includes("amount"));
+
+  if (roundIdx < 0) return { map: {}, count: 0, error: "\"회차\" 열을 찾을 수 없습니다." };
+  if (winnersIdx < 0) return { map: {}, count: 0, error: "당첨자 수 열을 찾을 수 없습니다. (\"1등당첨자\", \"당첨자\" 등 포함)" };
+  if (amountIdx < 0) return { map: {}, count: 0, error: "당첨금액 열을 찾을 수 없습니다. (\"1등당첨금\", \"당첨금액\" 등 포함)" };
+
+  const map: DetailMap = {};
+  let count = 0;
+
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(",");
+    const round = parseInt(cols[roundIdx]);
+    const winners = parseInt(cols[winnersIdx]?.replace(/[^0-9]/g, "") ?? "0");
+    const amount = parseInt(cols[amountIdx]?.replace(/[^0-9]/g, "") ?? "0");
+    if (!Number.isFinite(round)) continue;
+    map[String(round)] = { round, prizes: [{ rank: "1등", amount, winners }] };
+    if (winners > 0) count++;
+  }
+
+  return { map, count };
+}
+
 export default function History() {
   const [rows, setRows] = useState<LottoRow[]>([]);
   const [details, setDetails] = useState<DetailMap>({});
@@ -49,6 +94,8 @@ export default function History() {
   const [selectedRound, setSelectedRound] = useState<number | null>(null);
   const [prizeLoading, setPrizeLoading] = useState(false);
   const [prizeFailed,  setPrizeFailed]  = useState(false);
+  const [uploadMsg, setUploadMsg] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 선택된 회차의 prize 없으면 자동 fetch (Vercel 프록시 → dhlottery 직접 순서로 시도)
   useEffect(() => {
@@ -171,7 +218,13 @@ export default function History() {
         parsed.sort((a, b) => b.round - a.round);
 
         setRows(parsed);
-        setDetails(detailJson);
+
+        // localStorage 데이터 우선 적용 (업로드로 저장한 당첨 정보)
+        const stored = loadDetailsFromStorage();
+        const storedValid = Object.values(stored).filter(v => hasValidPrize(v)).length;
+        const jsonValid   = Object.values(detailJson).filter(v => hasValidPrize(v)).length;
+        const merged = storedValid >= jsonValid ? { ...detailJson, ...stored } : { ...stored, ...detailJson };
+        setDetails(merged);
 
         if (parsed.length > 0) {
           setSelectedRound(parsed[0].round);
@@ -186,6 +239,34 @@ export default function History() {
 
     loadData();
   }, []);
+
+  // CSV 파일 업로드 핸들러
+  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target?.result as string;
+      const { map, count, error: parseErr } = parsePrizeCsv(text);
+      if (parseErr) { setUploadMsg(`❌ ${parseErr}`); return; }
+      if (count === 0) { setUploadMsg("❌ 유효한 당첨 데이터가 없습니다. 헤더를 확인하세요."); return; }
+
+      setDetails(prev => {
+        const merged = { ...prev };
+        for (const [k, v] of Object.entries(map)) {
+          if (hasValidPrize(v)) merged[k] = v;
+        }
+        saveDetailsToStorage(merged);
+        return merged;
+      });
+      setUploadMsg(`✅ ${count}개 회차 당첨 정보 업데이트 완료!`);
+      setTimeout(() => setUploadMsg(""), 4000);
+    };
+    reader.onerror = () => setUploadMsg("❌ 파일을 읽을 수 없습니다.");
+    reader.readAsText(file, "utf-8");
+  }
 
   const filteredRows = useMemo(() => {
     let result = [...rows];
@@ -253,6 +334,28 @@ export default function History() {
           >
             {sortDesc ? "최신순" : "과거순"}
           </button>
+
+          {/* 숨김 파일 인풋 */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            style={{ display: "none" }}
+            onChange={handleFileUpload}
+          />
+          <button
+            className="history-sort-btn"
+            type="button"
+            title="당첨 데이터가 담긴 CSV 파일을 업로드하여 당첨자/당첨금 정보를 갱신합니다"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            📂 데이터 업데이트
+          </button>
+          {uploadMsg && (
+            <span style={{ fontSize: 12, color: uploadMsg.startsWith("✅") ? "#4ade80" : "#f87171", marginLeft: 8 }}>
+              {uploadMsg}
+            </span>
+          )}
         </div>
       </section>
 
