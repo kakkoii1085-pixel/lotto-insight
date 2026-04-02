@@ -26,11 +26,20 @@ jobs:
         run: pip install requests urllib3
 
       - name: 새 회차 데이터 수집 (번호 + 1등 당첨정보)
-        run: python scripts/update_lotto_csv.py
-
-      - name: 누락된 과거 당첨정보 보완
-        run: python scripts/update_lotto_history_details.py
+        id: fetch_data
+        run: |
+          python scripts/update_lotto_csv.py
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
         continue-on-error: true
+
+      - name: 수집 결과 확인
+        run: |
+          if git diff --quiet public/lotto_numbers.csv public/lotto_history_details.json 2>/dev/null; then
+            echo "📊 변경사항 없음 (이미 최신 상태이거나 API 차단됨)"
+          else
+            echo "✅ 새 데이터 수집 성공"
+            git diff --stat public/lotto_numbers.csv public/lotto_history_details.json
+          fi
 
       - name: 변경사항 확인
         id: check_changes
@@ -45,3 +54,15 @@ jobs:
           git add public/lotto_numbers.csv public/lotto_history_details.json
           git commit -m "chore: 로또 데이터 자동 업데이트 $(date +'%Y-%m-%d')"
           git push
+          echo "🚀 Vercel 자동 배포 시작됨"
+
+      - name: 결과 요약
+        if: always()
+        run: |
+          echo "================================================"
+          echo "실행 시각: $(date +'%Y-%m-%d %H:%M:%S UTC')"
+          echo "================================================"
+          echo ""
+          echo "⚠️  GitHub Actions가 dhlottery API 차단을 받는 경우:"
+          echo "   → 로컬 PC에서 '자동업데이트.bat' 실행 필요"
+          echo "   → Windows 작업 스케줄러로 자동화 가능"
