@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 
 // ───────────── 타입 ─────────────
 type LottoDraw = { round: number; date: string; numbers: number[]; bonus: number };
@@ -110,6 +110,54 @@ function appendSaved(item: SavedItem) {
 
 const GROUP_COLORS = ["#e8f5e9","#fff9c4","#fff3e0","#e3f2fd","#fce4ec","#ede7f6","#e0f7fa","#f1f8e9","#fff8e1","#fbe9e7","#e8eaf6","#f3e5f5","#e0f2f1","#fafafa","#f9fbe7"];
 
+// ────────── 예측 점수 계산 ──────────
+interface PredictionScore {
+  number: number;
+  score: number;
+  deviation: number;
+  recentTrend: number;
+  isOverdue: boolean;
+}
+
+function calculatePredictionScores(
+  draws: LottoDraw[],
+  recentCount: number = 10
+): PredictionScore[] {
+  if (draws.length === 0) return [];
+
+  const allFreq = buildFreqMap(draws);
+  const expectedFreq = 6 * draws.length / 45;
+  const recentDraws = draws.slice(-recentCount);
+  const recentFreq = buildFreqMap(recentDraws);
+
+  const scores: PredictionScore[] = [];
+
+  for (let n = 1; n <= 45; n++) {
+    const freq = allFreq[n];
+    const deviation = freq - expectedFreq;
+    const recentFreqVal = recentFreq[n] || 0;
+    const recentTrend = recentFreqVal / (recentCount / (draws.length / 45));
+    const lastAppear = draws.findIndex(d => d.numbers.includes(n));
+    const drawsSinceAppear = lastAppear >= 0 ? draws.length - lastAppear : draws.length;
+    const isOverdue = drawsSinceAppear > draws.length * 0.3;
+
+    let score = 0;
+    score += Math.abs(deviation) * 2;
+    score += recentTrend * 3;
+    score += (isOverdue ? 2 : 0);
+
+    scores.push({
+      number: n,
+      score: Math.max(0, score),
+      deviation,
+      recentTrend,
+      isOverdue
+    });
+  }
+
+  return scores.sort((a, b) => b.score - a.score);
+}
+
 // ────────── 메인 컴포넌트 ──────────
 export default function AnnualPattern() {
   const [draws,       setDraws]       = useState<LottoDraw[]>([]);
@@ -124,6 +172,9 @@ export default function AnnualPattern() {
   // 가/감 (freq range shift)
   const [freqAdj, setFreqAdj] = useState(0);
 
+  // 최근 N회 필터
+  const [trendWindow, setTrendWindow] = useState<10|20|50|"all">("all");
+
   const [generated, setGenerated] = useState<number[]>([]);
   const [savedMsg,  setSavedMsg]  = useState("");
   const [genNote,   setGenNote]   = useState("");
@@ -136,6 +187,18 @@ export default function AnnualPattern() {
   const stat52     = useMemo(() => compute52WeekStats(draws),  [draws]);
   const avgPerFreq = useMemo(() => computeAvgBallsPerFreq(yearStats), [yearStats]);
   const years      = useMemo(() => yearStats.map(y => y.year), [yearStats]);
+
+  // 트렌드 윈도우 기반 예측 점수
+  const filteredForTrend = useMemo(() => {
+    if (trendWindow === "all") return draws;
+    const n = typeof trendWindow === "number" ? trendWindow : 10;
+    return draws.slice(-n);
+  }, [draws, trendWindow]);
+
+  const predictionScores = useMemo(
+    () => calculatePredictionScores(draws, trendWindow === "all" ? draws.length : typeof trendWindow === "number" ? trendWindow : 10),
+    [draws, trendWindow]
+  );
 
   const currentStat = useMemo(() => {
     if (viewMode === "52week") return stat52;
@@ -187,6 +250,15 @@ export default function AnnualPattern() {
     setSavedMsg("");
   }
 
+  // AI 자동 추천: 가장 높은 예측 점수의 6개 번호 (제외 제외)
+  function handleAIRecommend() {
+    const excludeSet = new Set(excludeNums);
+    const candidates = predictionScores.filter(ps => !excludeSet.has(ps.number));
+    const recommended = candidates.slice(0, 6).map(ps => ps.number).sort((a,b)=>a-b);
+    setGenerated(recommended);
+    setSavedMsg("");
+  }
+
   function handleSave() {
     if (generated.length === 0) return;
     appendSaved({ id: crypto.randomUUID(), numbers: generated, source: "generator", modeLabel: "연간분포패턴", note: genNote||undefined, createdAt: new Date().toISOString() });
@@ -226,6 +298,70 @@ export default function AnnualPattern() {
           </select>
         </div>
       )}
+
+      {/* ─── 예측 점수 바 ─── */}
+      <section className="panel ap-score-panel">
+        <h3 className="panelTitle">예측 점수 순위 (상위 15개)</h3>
+        <p className="panelSubText" style={{marginBottom:12}}>
+          편차 + 최근 트렌드 + 초과연체 등을 종합한 예측 점수입니다.
+        </p>
+        <div className="ap-score-list">
+          {predictionScores.slice(0, 15).map((ps, idx) => (
+            <div key={ps.number} className="ap-score-row">
+              <span className="ap-score-rank">#{idx + 1}</span>
+              <span className={`ap-ball ${ballClass(ps.number)}`}>{ps.number}</span>
+              <div className="ap-score-bar-container">
+                <div className="barTrack ap-score-track">
+                  <div
+                    className="barFill ap-score-fill"
+                    style={{ width: `${(ps.score / (predictionScores[0]?.score || 1)) * 100}%` }}
+                  />
+                </div>
+              </div>
+              <span className="ap-score-val">{ps.score.toFixed(1)}</span>
+              <span className="ap-score-badge" style={{color: ps.isOverdue ? "#ff6b6b" : "#888"}}>
+                {ps.isOverdue ? "연체" : "정상"}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ─── 45번 히트맵 ─── */}
+      <section className="panel ap-heatmap-panel">
+        <h3 className="panelTitle">45번 히트맵 (클릭으로 선택/배제)</h3>
+        <p className="panelSubText" style={{marginBottom:12}}>
+          색상이 짙을수록 출현 빈도가 높습니다. 클릭하여 직접 선택/배제할 수 있습니다.
+        </p>
+        <div className="ap-heatmap-grid">
+          {Array.from({ length: 45 }, (_, i) => i + 1).map(n => {
+            const freq = currentStat?.freqMap?.[n] || 0;
+            const maxFreq = Math.max(...Object.values(currentStat?.freqMap || {}), 1);
+            const intensity = freq / maxFreq;
+            const mark = ballMarks[n] || "none";
+            const baseColor = ["#1e88e5", "#f57c00", "#00a86b"][
+              ["navy","red","yellow","gray","green"].indexOf(
+                ballClass(n).split(" ")[1]
+              )
+            ];
+            return (
+              <button
+                key={n}
+                type="button"
+                className={`ap-heatmap-cell ap-ball ${ballClass(n)} ap-mark-${mark}`}
+                style={{
+                  backgroundColor: `rgba(82, 122, 245, ${intensity * 0.7})`,
+                  opacity: 0.5 + intensity * 0.5,
+                }}
+                onClick={() => toggleBall(n)}
+                title={`${n}번: ${freq}회 (클릭: ${mark === "predict" ? "예측 해제" : mark === "exclude" ? "배제 해제" : "예측 선택"})`}
+              >
+                {n}
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       {/* ─── 출현횟수 분포 테이블 ─── */}
       {currentStat && (
@@ -324,13 +460,40 @@ export default function AnnualPattern() {
           </div>
         </div>
 
+        {/* 트렌드 윈도우 선택 */}
+        <div className="ap-trend-selector">
+          <span className="fieldLabel">트렌드 기준</span>
+          <button
+            className={`toggleBtn ${trendWindow === "all" ? "active" : ""}`}
+            onClick={() => setTrendWindow("all")}
+          >전체</button>
+          <button
+            className={`toggleBtn ${trendWindow === 50 ? "active" : ""}`}
+            onClick={() => setTrendWindow(50)}
+          >최근 50회</button>
+          <button
+            className={`toggleBtn ${trendWindow === 20 ? "active" : ""}`}
+            onClick={() => setTrendWindow(20)}
+          >최근 20회</button>
+          <button
+            className={`toggleBtn ${trendWindow === 10 ? "active" : ""}`}
+            onClick={() => setTrendWindow(10)}
+          >최근 10회</button>
+        </div>
+
         <div className="buttonRow" style={{marginTop:16}}>
+          <button
+            className="primaryBtn"
+            onClick={handleAIRecommend}
+          >
+            AI 추천 6개
+          </button>
           <button
             className="primaryBtn"
             onClick={handleExtract}
             disabled={predictNums.length === 0}
           >
-            출현예측 번호에서 6개 추출
+            출현예측 추출 6개
           </button>
           <button className="subBtn" onClick={clearMarks}>선택 초기화</button>
         </div>

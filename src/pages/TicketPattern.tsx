@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 
 // ───────────── 타입 ─────────────
 type LottoDraw = {
@@ -17,6 +17,20 @@ const ROWS = [
   { label: "5행 (41-45)", min: 41, max: 45 },
 ];
 
+// 열(컬럼) 정의: 1의 자리 (1,2,3,...,9,0)
+const COLUMNS = [
+  { digit: 1, label: "1의 자리" },
+  { digit: 2, label: "2의 자리" },
+  { digit: 3, label: "3의 자리" },
+  { digit: 4, label: "4의 자리" },
+  { digit: 5, label: "5의 자리" },
+  { digit: 6, label: "6의 자리" },
+  { digit: 7, label: "7의 자리" },
+  { digit: 8, label: "8의 자리" },
+  { digit: 9, label: "9의 자리" },
+  { digit: 0, label: "0의 자리" },
+];
+
 // 숫자 → 행 인덱스(0-4)
 function rowOf(n: number) {
   if (n <= 10) return 0;
@@ -24,6 +38,11 @@ function rowOf(n: number) {
   if (n <= 30) return 2;
   if (n <= 40) return 3;
   return 4;
+}
+
+// 숫자 → 열 인덱스 (1의 자리)
+function columnOf(n: number) {
+  return n % 10;
 }
 
 // 6개 번호 → 행별 개수 패턴 (예: [2,1,2,1,0])
@@ -105,6 +124,11 @@ function generateByPattern(patternStr: string): number[] {
   return result.sort((a, b) => a - b);
 }
 
+// ────────── 여러 번호 세트 생성 ──────────
+function generateMultipleSets(patternStr: string, count: number = 5): number[][] {
+  return Array.from({ length: count }, () => generateByPattern(patternStr));
+}
+
 // ────────── 포아송 기대값 계산 ──────────
 function computePoissonExpected(draws: LottoDraw[]) {
   // 각 행의 평균 출현 개수 계산
@@ -162,12 +186,14 @@ const TOP_TABS = [
 export default function TicketPattern() {
   const [draws, setDraws] = useState<LottoDraw[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"overall" | "yearly">("overall");
+  const [tab, setTab] = useState<"overall" | "yearly" | "column">("overall");
   const [topN, setTopN] = useState(10);
   const [selectedYear, setSelectedYear] = useState<string>("ALL");
   const [generated, setGenerated] = useState<number[]>([]);
   const [savedMsg, setSavedMsg] = useState("");
   const [genNote, setGenNote] = useState("");
+  const [multipleOptions, setMultipleOptions] = useState<number[][]>([]);
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
 
   useEffect(() => {
     loadHistory().then(d => { setDraws(d); setLoading(false); });
@@ -184,15 +210,42 @@ export default function TicketPattern() {
   const yearlyData = useMemo(() => analyzeByYear(draws), [draws]);
   const poissonMeans = useMemo(() => computePoissonExpected(filteredDraws), [filteredDraws]);
 
+  // 열 분석
+  const columnStats = useMemo(() => {
+    const colCounts: Record<number, Record<number, number>> = {};
+    for (let d = 0; d <= 9; d++) {
+      colCounts[d] = {};
+      for (let f = 0; f <= 14; f++) colCounts[d][f] = 0;
+    }
+    filteredDraws.forEach(draw => {
+      draw.numbers.forEach(n => {
+        const col = columnOf(n);
+        const freq = filteredDraws.filter(d => d.numbers.includes(n)).length;
+        colCounts[col][freq] = (colCounts[col][freq] || 0) + 1;
+      });
+    });
+    return colCounts;
+  }, [filteredDraws]);
+
   const years = useMemo(() => {
     const ys = new Set(draws.map(d => d.date.slice(0, 4)));
     return ["ALL", ...Array.from(ys).sort((a, b) => Number(b) - Number(a))];
   }, [draws]);
 
   function handleGenerate(patternStr: string) {
-    const nums = generateByPattern(patternStr);
-    setGenerated(nums);
+    const options = generateMultipleSets(patternStr, 5);
+    setMultipleOptions(options);
+    setSelectedOption(0);
+    setGenerated(options[0]);
     setSavedMsg("");
+  }
+
+  function selectOption(idx: number) {
+    if (idx >= 0 && idx < multipleOptions.length) {
+      setSelectedOption(idx);
+      setGenerated(multipleOptions[idx]);
+      setSavedMsg("");
+    }
   }
 
   function handleSave() {
@@ -268,11 +321,15 @@ export default function TicketPattern() {
         <button
           className={`toggleBtn ${tab === "overall" ? "active" : ""}`}
           onClick={() => setTab("overall")}
-        >전체/연도별 TOP 분석</button>
+        >행 패턴 분석</button>
+        <button
+          className={`toggleBtn ${tab === "column" ? "active" : ""}`}
+          onClick={() => setTab("column")}
+        >열 분석 (1의 자리)</button>
         <button
           className={`toggleBtn ${tab === "yearly" ? "active" : ""}`}
           onClick={() => setTab("yearly")}
-        >연도별 TOP10 비교</button>
+        >연도별 TOP10</button>
       </div>
 
       {tab === "overall" && (
@@ -306,6 +363,30 @@ export default function TicketPattern() {
             분석 대상: {filteredDraws.length}회 | 패턴 종류: {allPatterns.length}개
           </p>
 
+          {/* 패턴 히트맵 */}
+          <div className="tp-heatmap-section">
+            <h4 className="tp-heatmap-title">패턴 빈도 히트맵</h4>
+            <div className="tp-heatmap-grid">
+              {topPatterns.slice(0, 30).map((p, idx) => {
+                const intensity = Math.min(1, p.count / topPatterns[0].count);
+                return (
+                  <div
+                    key={p.pattern}
+                    className="tp-heatmap-cell"
+                    style={{
+                      backgroundColor: `rgba(82, 122, 245, ${intensity * 0.6 + 0.2})`,
+                      border: `1px solid rgba(82, 122, 245, ${intensity * 0.8})`
+                    }}
+                    title={`${p.pattern}: ${p.count}회 (${(p.pct * 100).toFixed(1)}%)`}
+                  >
+                    <div className="tp-heatmap-pattern">{p.pattern}</div>
+                    <div className="tp-heatmap-count">{p.count}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* 패턴 목록 */}
           <div className="tp-pattern-list">
             {topPatterns.map((p, idx) => (
@@ -326,9 +407,54 @@ export default function TicketPattern() {
                 <button
                   className="subBtn tp-gen-btn"
                   onClick={() => handleGenerate(p.pattern)}
-                >번호 생성</button>
+                >생성</button>
               </div>
             ))}
+          </div>
+        </section>
+      )}
+
+      {tab === "column" && (
+        <section className="panel">
+          <h3 className="panelTitle">열(1의 자리) 분석</h3>
+          <p className="panelSubText" style={{ marginBottom: 16 }}>
+            로또용지의 열별(1의 자리: 1,2,3,...,9,0) 번호 출현 빈도 분석
+          </p>
+          <div className="tp-column-grid">
+            {COLUMNS.map(col => {
+              const numsByDigit = filteredDraws
+                .flatMap(d => d.numbers.filter(n => columnOf(n) === col.digit))
+                .sort((a, b) => a - b);
+              const uniqueNums = [...new Set(numsByDigit)];
+              const maxFreq = Math.max(...uniqueNums.map(n =>
+                filteredDraws.filter(d => d.numbers.includes(n)).length
+              ), 1);
+              return (
+                <div key={col.digit} className="tp-column-card">
+                  <div className="tp-column-header">{col.label} ({col.digit === 0 ? '10,20,30,40' : col.digit + ',1' + col.digit + ',2' + col.digit + ',3' + col.digit + ',4' + col.digit})</div>
+                  <div className="tp-column-balls">
+                    {uniqueNums.map(n => {
+                      const freq = filteredDraws.filter(d => d.numbers.includes(n)).length;
+                      const intensity = freq / maxFreq;
+                      return (
+                        <div
+                          key={n}
+                          className={`tp-column-ball ${ballClass(n)}`}
+                          style={{
+                            opacity: 0.4 + intensity * 0.6,
+                            boxShadow: `0 0 ${intensity * 8}px rgba(255,255,255,${intensity * 0.5})`
+                          }}
+                          title={`${n}번: ${freq}회`}
+                        >
+                          {n}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="tp-column-stat">평균: {(numsByDigit.length / uniqueNums.length || 0).toFixed(1)}회</div>
+                </div>
+              );
+            })}
           </div>
         </section>
       )}
@@ -365,11 +491,63 @@ export default function TicketPattern() {
       {generated.length > 0 && (
         <section className="panel tp-result-panel">
           <h3 className="panelTitle">생성된 번호</h3>
-          <div className="balls" style={{ marginBottom: 16 }}>
+
+          {/* 다양한 옵션 선택 */}
+          {multipleOptions.length > 0 && (
+            <div className="tp-options-section">
+              <p className="panelSubText">생성된 {multipleOptions.length}개 옵션 중 선택:</p>
+              <div className="tp-options-grid">
+                {multipleOptions.map((nums, idx) => (
+                  <button
+                    key={idx}
+                    className={`tp-option-btn ${selectedOption === idx ? "selected" : ""}`}
+                    onClick={() => selectOption(idx)}
+                  >
+                    <div className="tp-option-num">옵션 {idx + 1}</div>
+                    <div className="balls" style={{ gap: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
+                      {nums.map(n => (
+                        <span key={n} className={`${ballClass(n)} tp-option-ball`}>{n}</span>
+                      ))}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 실제 로또용지 시각화 */}
+          <div className="tp-ticket-section">
+            <p className="panelSubText">실제 로또용지 시각화</p>
+            <div className="tp-ticket-visual">
+              {ROWS.map((row, ri) => (
+                <div key={ri} className="tp-ticket-row">
+                  <div className="tp-ticket-row-label">{row.label}</div>
+                  <div className="tp-ticket-cells">
+                    {Array.from({ length: row.max - row.min + 1 }, (_, i) => {
+                      const num = row.min + i;
+                      const isSelected = generated.includes(num);
+                      return (
+                        <div
+                          key={num}
+                          className={`tp-ticket-cell ${isSelected ? "selected" : ""} ${ballClass(num)}`}
+                        >
+                          {isSelected ? num : ""}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 생성된 번호 표시 */}
+          <div className="balls" style={{ marginBottom: 16, marginTop: 16 }}>
             {generated.map(n => (
               <span key={n} className={ballClass(n)}>{n}</span>
             ))}
           </div>
+
           <div className="tp-save-row">
             <input
               className="input"

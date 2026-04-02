@@ -4162,3 +4162,831 @@ a {
     font-size: 13px;
   }
 }
+/* 역대당첨번호 prize 추가 스타일 */
+.history-prize-rank {
+  font-weight: 800;
+  color: #f3c400;
+}
+
+.history-no-detail-icon {
+  display: block;
+  font-size: 20px;
+  margin-bottom: 8px;
+}
+
+.history-no-detail {
+  line-height: 1.7;
+}
+
+/* 연도 레이블 노란색 */
+.ap-year-label {
+  color: #f3c400;
+  font-weight: 800;
+}
+
+.tp-year-label {
+  color: #f3c400;
+  font-weight: 800;
+}
+
+/* prize 로딩 */
+.history-prize-loading {
+  padding: 20px;
+  font-size: 14px;
+  opacity: 0.7;
+  text-align: center;
+}
+
+/* ===== TicketPattern 새로운 스타일 ===== */
+
+/* 패턴 히트맵 */
+.tp-heatmap-section {
+  margin-bottom: 24px;
+}
+
+.tp-heatmap-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 12px;
+}
+
+.tp-heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tp-heatmap-cell {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(82, 122, 245, 0.3);
+}
+
+.tp-heatmap-cell:hover {
+  transform: scale(1.08);
+  border-color: rgba(82, 122, 245, 0.7);
+}
+
+.tp-heatmap-pattern {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.tp-heatmap-count {
+  font-size: 11px;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+/* 열 분석 */
+.tp-column-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.tp-column-card {
+  background: rgba(20, 27, 46, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.tp-column-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tp-column-balls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.tp-column-ball {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.tp-column-ball:hover {
+  transform: scale(1.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.tp-column-stat {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+}
+
+/* 실제 로또용지 시각화 */
+.tp-ticket-section {
+  margin: 20px 0;
+  padding: 16px;
+  background: rgba(20, 27, 46, 0.6);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tp-ticket-visual {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.tp-ticket-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.tp-ticket-row-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  min-width: 80px;
+}
+
+.tp-ticket-cells {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.tp-ticket-cell {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.tp-ticket-cell.selected {
+  color: rgba(255, 255, 255, 0.95);
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+}
+
+/* 다중 옵션 선택 */
+.tp-options-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: rgba(20, 27, 46, 0.6);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tp-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.tp-option-btn {
+  background: rgba(14, 21, 39, 0.8);
+  border: 2px solid rgba(82, 122, 245, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.tp-option-btn:hover {
+  border-color: rgba(82, 122, 245, 0.6);
+  background: rgba(20, 27, 46, 0.8);
+}
+
+.tp-option-btn.selected {
+  background: rgba(82, 122, 245, 0.2);
+  border-color: rgba(82, 122, 245, 0.8);
+  box-shadow: 0 0 12px rgba(82, 122, 245, 0.4);
+}
+
+.tp-option-num {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.tp-option-ball {
+  width: 28px !important;
+  height: 28px !important;
+  font-size: 11px !important;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+  .tp-heatmap-grid {
+    grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+  }
+
+  .tp-column-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tp-ticket-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .tp-options-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tp-pattern-list {
+    flex-direction: column;
+  }
+
+  .tp-pattern-row {
+    flex-wrap: wrap;
+  }
+}
+
+/* ===== AnnualPattern 새로운 스타일 ===== */
+
+/* 예측 점수 */
+.ap-score-panel {
+  margin-bottom: 20px;
+}
+
+.ap-score-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ap-score-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: rgba(20, 27, 46, 0.5);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ap-score-rank {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  min-width: 30px;
+}
+
+.ap-score-bar-container {
+  flex: 1;
+  min-width: 100px;
+}
+
+.ap-score-track {
+  height: 16px;
+  border-radius: 4px;
+}
+
+.ap-score-fill {
+  background: linear-gradient(90deg, rgba(82, 122, 245, 0.8), rgba(82, 122, 245, 0.4));
+  border-radius: 4px;
+}
+
+.ap-score-val {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  min-width: 40px;
+  text-align: right;
+}
+
+.ap-score-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  min-width: 50px;
+  text-align: center;
+}
+
+/* 45번 히트맵 */
+.ap-heatmap-panel {
+  margin-bottom: 20px;
+}
+
+.ap-heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
+  gap: 6px;
+  padding: 12px;
+  background: rgba(14, 21, 39, 0.6);
+  border-radius: 8px;
+}
+
+.ap-heatmap-cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ap-heatmap-cell:hover {
+  transform: scale(1.1);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+}
+
+.ap-heatmap-cell.ap-mark-predict {
+  background: rgba(122, 209, 31, 0.4) !important;
+  border-color: rgba(122, 209, 31, 0.7) !important;
+  box-shadow: 0 0 8px rgba(122, 209, 31, 0.3) !important;
+}
+
+.ap-heatmap-cell.ap-mark-exclude {
+  background: rgba(243, 196, 0, 0.3) !important;
+  border-color: rgba(243, 196, 0, 0.6) !important;
+  opacity: 0.7;
+}
+
+/* 트렌드 선택기 */
+.ap-trend-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  flex-wrap: wrap;
+}
+
+.ap-trend-selector .fieldLabel {
+  margin-right: 4px;
+}
+
+.ap-trend-selector .toggleBtn {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+  .ap-heatmap-grid {
+    grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+    gap: 4px;
+    padding: 8px;
+  }
+
+  .ap-score-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .ap-score-rank {
+    order: -1;
+  }
+
+  .ap-trend-selector {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ap-trend-selector .fieldLabel {
+    width: 100%;
+    margin-bottom: 8px;
+  }
+
+  .buttonRow {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .buttonRow button {
+    width: 100%;
+  }
+
+  .ap-select-summary {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .ap-select-group {
+    width: 100%;
+  }
+
+  .ap-balls-row {
+    flex-wrap: wrap;
+  }
+}
+/* ===== Mobile Responsive Navbar ===== */
+
+/* Hide desktop header on mobile */
+@media (max-width: 768px) {
+  .li-header-desktop {
+    display: none;
+  }
+
+  /* Mobile header visible only on mobile */
+  .li-mobile-header {
+    display: block;
+  }
+
+  /* Add padding to appShell to account for bottom tabs */
+  .appShell {
+    padding-bottom: 70px;
+  }
+
+  /* Show bottom tabs on mobile */
+  .li-bottom-tabs {
+    display: flex;
+  }
+
+  /* Mobile responsive grids */
+  .tp-lambda-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tp-yearly-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ap-dist-table {
+    overflow-x: auto;
+  }
+
+  .history-table-wrap {
+    overflow-x: auto;
+  }
+}
+
+/* Show desktop header on desktop */
+@media (min-width: 769px) {
+  .li-mobile-header {
+    display: none;
+  }
+
+  .li-header-desktop {
+    display: block;
+  }
+
+  .li-bottom-tabs {
+    display: none;
+  }
+}
+
+/* ===== Mobile Header Styles ===== */
+
+.li-mobile-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: linear-gradient(
+    180deg,
+    rgba(20, 27, 46, 0.98),
+    rgba(13, 19, 34, 0.99)
+  );
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.24);
+}
+
+.li-mobile-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  min-height: 56px;
+}
+
+.li-mobile-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+/* ===== Hamburger Button ===== */
+
+.li-hamburger-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+.li-hamburger-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.li-hamburger-line {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.92);
+  transition: all 0.3s ease;
+  border-radius: 1px;
+}
+
+.li-hamburger-btn.open .li-hamburger-line:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.li-hamburger-btn.open .li-hamburger-line:nth-child(2) {
+  opacity: 0;
+}
+
+.li-hamburger-btn.open .li-hamburger-line:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* ===== Mobile Dropdown Menu ===== */
+
+.li-mobile-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(20, 27, 46, 0.98),
+    rgba(13, 19, 34, 0.99)
+  );
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+  animation: slideDown 0.2s ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.li-mobile-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.li-mobile-nav-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.li-mobile-nav-item.active {
+  background: rgba(82, 122, 245, 0.18);
+  color: #ffffff;
+  border-left: 3px solid rgba(82, 122, 245, 1);
+  padding-left: 13px;
+}
+
+.li-mobile-nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.li-mobile-nav-label {
+  flex: 1;
+}
+
+/* ===== Bottom Tab Bar ===== */
+
+.li-bottom-tabs {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  display: none;
+  height: 70px;
+  background: linear-gradient(
+    180deg,
+    rgba(20, 27, 46, 0.98),
+    rgba(13, 19, 34, 0.99)
+  );
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.24);
+  padding: 0;
+  margin: 0;
+}
+
+.li-bottom-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 8px;
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 11px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  background: none;
+  border-top: 2px solid transparent;
+}
+
+.li-bottom-tab:hover {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.li-bottom-tab.active {
+  color: #ffffff;
+  border-top-color: rgba(82, 122, 245, 1);
+  background: rgba(82, 122, 245, 0.08);
+}
+
+.li-bottom-tab-more {
+  padding: 6px 8px;
+}
+
+.li-bottom-tab-more:hover {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.li-bottom-tab-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  height: 24px;
+}
+
+.li-bottom-tab-label {
+  display: block;
+  line-height: 1.1;
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== Additional Mobile Responsive Improvements ===== */
+
+/* Ensure proper spacing for mobile content */
+@media (max-width: 768px) {
+  body {
+    padding-top: 56px;
+  }
+
+  .pageWrap {
+    padding: 16px 12px 48px;
+  }
+
+  .analysis-page {
+    padding: 16px 12px 48px;
+  }
+
+  .analysis-top-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .tp-lambda-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .tp-yearly-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .ap-dist-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .history-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Reduce spacing on small screens */
+  .cardSection {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .sectionTitle {
+    font-size: 18px;
+  }
+}
+
+/* Small devices (under 480px) */
+@media (max-width: 480px) {
+  .li-mobile-header-inner {
+    padding: 10px 12px;
+    min-height: 50px;
+  }
+
+  .li-mobile-title {
+    font-size: 16px;
+  }
+
+  .li-hamburger-btn {
+    width: 36px;
+    height: 36px;
+    gap: 4px;
+  }
+
+  .li-hamburger-line {
+    width: 18px;
+  }
+
+  .pageWrap,
+  .analysis-page {
+    padding: 12px 10px 48px;
+  }
+
+  .tp-yearly-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cardSection {
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .sectionTitle {
+    font-size: 16px;
+  }
+
+  .appTitle {
+    font-size: clamp(24px, 5vw, 36px);
+  }
+
+  .li-bottom-tabs {
+    height: 64px;
+  }
+
+  .li-bottom-tab-label {
+    font-size: 10px;
+  }
+}
