@@ -153,12 +153,12 @@ function parseCsv(text: string): LottoRow[] {
 
   for (let i = 1; i < lines.length; i += 1) {
     const cols = lines[i].split(",").map((v) => v.trim());
-    if (cols.length < 9) continue;
+    if (cols.length < 10) continue;
 
-    const round = Number(cols[0]);
-    const date = cols[1];
-    const numbers = cols.slice(2, 8).map(Number).filter((n) => !Number.isNaN(n));
-    const bonus = Number(cols[8]);
+    const round = Number(cols[1]);
+    const date = cols[2];
+    const numbers = cols.slice(3, 9).map(Number).filter((n) => !Number.isNaN(n));
+    const bonus = Number(cols[9]);
 
     if (!round || !date || numbers.length !== 6 || Number.isNaN(bonus)) continue;
 

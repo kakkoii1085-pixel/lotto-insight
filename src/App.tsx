@@ -16,8 +16,10 @@ export default function App() {
 
       <Routes>
         <Route path="/" element={<Navigate to="/analysis" replace />} />
-        <Route path="/Analysis" element={<Analysis />} />
+        <Route path="/analysis" element={<Analysis />} />
+        <Route path="/Analysis" element={<Navigate to="/analysis" replace />} />
         <Route path="/generator" element={<Generator />} />
+        <Route path="/simulator" element={<Navigate to="/generator" replace />} />
         <Route path="/hot-numbers" element={<HotNumbers />} />
         <Route path="/purchase" element={<Purchase />} />
         <Route path="/history" element={<History />} />

@@ -76,20 +76,20 @@ export default function Analysis() {
           .filter(Boolean)
           .map((line) => {
             const cols = line.split(",");
-            if (cols.length < 9) return null;
+            if (cols.length < 10) return null;
 
             return {
-              round: Number(cols[0]),
-              date: cols[1],
+              round: Number(cols[1]),
+              date: cols[2],
               numbers: [
-                Number(cols[2]),
                 Number(cols[3]),
                 Number(cols[4]),
                 Number(cols[5]),
                 Number(cols[6]),
                 Number(cols[7]),
+                Number(cols[8]),
               ],
-              bonus: Number(cols[8]),
+              bonus: Number(cols[9]),
             } as LottoRow;
           })
           .filter(Boolean) as LottoRow[];

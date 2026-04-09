@@ -192,12 +192,12 @@ export default function History() {
         for (let i = 1; i < lines.length; i += 1) {
           const cols = lines[i].split(",");
 
-          if (cols.length < 9) continue;
+          if (cols.length < 10) continue;
 
-          const round = Number(cols[0]);
-          const date = cols[1];
-          const nums = cols.slice(2, 8).map((v) => Number(v));
-          const bonus = Number(cols[8]);
+          const round = Number(cols[1]);
+          const date = cols[2];
+          const nums = cols.slice(3, 9).map((v) => Number(v));
+          const bonus = Number(cols[9]);
 
           if (
             !Number.isFinite(round) ||

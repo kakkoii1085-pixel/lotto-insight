@@ -15,11 +15,11 @@ async function loadHistory(): Promise<LottoDraw[]> {
   if (lines.length <= 1) return [];
   return lines.slice(1).map(line => {
     const cols = line.split(",");
-    if (cols.length < 9) return null;
-    const round   = Number(cols[0]);
-    const date    = cols[1];
-    const numbers = cols.slice(2, 8).map(Number);
-    const bonus   = Number(cols[8]);
+    if (cols.length < 10) return null;
+    const round   = Number(cols[1]);
+    const date    = cols[2];
+    const numbers = cols.slice(3, 9).map(Number);
+    const bonus   = Number(cols[9]);
     if ([round, ...numbers, bonus].some(isNaN)) return null;
     return { round, date, numbers, bonus };
   }).filter((d): d is LottoDraw => d !== null)
