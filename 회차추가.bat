@@ -2,31 +2,31 @@
 chcp 65001 > nul
 cd /d "%~dp0"
 
-echo ====================================
-echo   로또 새 회차 데이터 추가
-echo ====================================
-echo.
+:: =============================================
+::   매주 여기 값만 바꾸고 더블클릭!
+:: =============================================
+set ROUND=1220
+set DATE=2026-04-19
+set N1=0
+set N2=0
+set N3=0
+set N4=0
+set N5=0
+set N6=0
+set BONUS=0
+set WINNERS=0
+set AMOUNT=0
+:: =============================================
 
-set /p ROUND=회차 번호를 입력하세요 (예: 1219):
-set /p DATE=추첨일을 입력하세요 (예: 2026-04-11):
-set /p N1=1번째 번호:1
-set /p N2=2번째 번호:2
-set /p N3=3번째 번호:15
-set /p N4=4번째 번호:28
-set /p N5=5번째 번호:39
-set /p N6=6번째 번호:45
-set /p BONUS=보너스 번호:31
-set /p WINNERS=1등 당첨자 수 (모르면 0):12
-set /p AMOUNT=1등 당첨금 (모르면 0, 예: 2000000000):2508232844
-
+echo ====================================
+echo   로또 %ROUND%회 데이터 추가
+echo ====================================
 echo.
-echo 입력 내용 확인:
-echo   회차: %ROUND%회
-echo   날짜: %DATE%
-echo   번호: %N1% %N2% %N3% %N4% %N5% %N6% + 보너스 %BONUS%
-echo   당첨자: %WINNERS%명  /  당첨금: %AMOUNT%원
+echo   날짜  : %DATE%
+echo   번호  : %N1% %N2% %N3% %N4% %N5% %N6% + 보너스 %BONUS%
+echo   당첨자: %WINNERS%명  /  %AMOUNT%원
 echo.
-set /p CONFIRM=맞으면 Y, 다시 입력하려면 N:
+set /p CONFIRM=추가하시겠습니까? (Y/N):
 
 if /i not "%CONFIRM%"=="Y" (
     echo 취소되었습니다.
@@ -37,21 +37,19 @@ if /i not "%CONFIRM%"=="Y" (
 python scripts\add_round.py %ROUND% %DATE% %N1% %N2% %N3% %N4% %N5% %N6% %BONUS% %WINNERS% %AMOUNT%
 
 if errorlevel 1 (
-    echo.
     echo [오류] 데이터 추가에 실패했습니다.
     pause
     exit /b
 )
 
 echo.
-echo GitHub에 업로드 중...
+echo GitHub 업로드 중...
 git add public\lotto_numbers.csv
 git commit -m "%ROUND%회 로또 데이터 추가 (%DATE%)"
 git push origin main
 
 echo.
 echo ====================================
-echo   완료! Vercel이 자동 배포됩니다.
-echo   1~2분 후 앱에서 확인하세요.
+echo   완료! 1~2분 후 앱에서 확인하세요.
 echo ====================================
 pause
