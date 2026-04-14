@@ -547,17 +547,24 @@ export default function Purchase() {
                   </div>
 
                   <div className="purchase-number-row">
-                    {item.numbers.map((num) => (
-                      <div
-                        key={`${item.id}-${num}`}
-                        className={`purchase-ball ${getBallClass(num).replace(
-                          "ball ",
-                          ""
-                        )}`}
-                      >
-                        {num}
-                      </div>
-                    ))}
+                    {item.numbers.map((num) => {
+                      const isMatched = !result.isPending && selectedDraw && selectedDraw.numbers.includes(num);
+                      const isBonus   = !result.isPending && selectedDraw && selectedDraw.bonus === num;
+                      return (
+                        <div
+                          key={`${item.id}-${num}`}
+                          className={`purchase-ball-wrap${isMatched ? " matched" : isBonus ? " bonus-matched" : result.isPending ? "" : " no-match"}`}
+                        >
+                          <div
+                            className={`purchase-ball ${getBallClass(num).replace("ball ", "")}${isMatched ? " ball-hit" : isBonus ? " ball-bonus-hit" : result.isPending ? "" : " ball-dim"}`}
+                          >
+                            {num}
+                          </div>
+                          {isMatched && <span className="ball-check">✓</span>}
+                          {isBonus  && <span className="ball-check bonus-check">B</span>}
+                        </div>
+                      );
+                    })}
                   </div>
 
                   <div className="purchase-result-info">
@@ -567,11 +574,9 @@ export default function Purchase() {
                       ) : (
                         <>
                           일치 개수: <strong>{result.matchCount}개</strong>
-                          {result.matchCount >= 5 ? (
-                            <>
-                              {" "}
-                              / 보너스 일치: <strong>{result.bonusMatch ? "O" : "X"}</strong>
-                            </>
+                          {result.bonusMatch ? <> / <strong style={{color:"#ffd700"}}>보너스 ✓</strong></> : null}
+                          {result.matchCount >= 5 && !result.bonusMatch ? (
+                            <> / 보너스 일치: <strong>{result.bonusMatch ? "O" : "X"}</strong></>
                           ) : null}
                         </>
                       )}
@@ -987,6 +992,25 @@ export default function Purchase() {
           margin-bottom: 14px;
         }
 
+        .purchase-ball-wrap {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+          position: relative;
+        }
+
+        .ball-check {
+          font-size: 13px;
+          font-weight: 900;
+          color: #4ade80;
+          line-height: 1;
+        }
+
+        .bonus-check {
+          color: #ffd700;
+        }
+
         .purchase-ball {
           width: 74px;
           aspect-ratio: 1 / 1;
@@ -1000,6 +1024,22 @@ export default function Purchase() {
           color: #fff;
           box-shadow: 0 10px 22px rgba(0,0,0,0.26);
           flex: 0 0 74px;
+          transition: all 0.2s;
+        }
+
+        .purchase-ball.ball-hit {
+          box-shadow: 0 0 0 3px #4ade80, 0 0 18px rgba(74,222,128,0.6);
+          transform: scale(1.08);
+        }
+
+        .purchase-ball.ball-bonus-hit {
+          box-shadow: 0 0 0 3px #ffd700, 0 0 18px rgba(255,215,0,0.6);
+          transform: scale(1.08);
+        }
+
+        .purchase-ball.ball-dim {
+          opacity: 0.35;
+          filter: grayscale(40%);
         }
 
         .purchase-result-info {
