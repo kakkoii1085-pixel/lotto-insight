@@ -42,14 +42,18 @@ function hasValidPrize(detail: DetailMap[string] | undefined): boolean {
 const LS_KEY = "lottoDetails_v1";
 
 function saveDetailsToStorage(data: DetailMap) {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch {}
+  try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch {
+    // ignore storage write errors
+  }
 }
 
 function loadDetailsFromStorage(): DetailMap {
   try {
     const raw = localStorage.getItem(LS_KEY);
     if (raw) return JSON.parse(raw) as DetailMap;
-  } catch {}
+  } catch {
+    // ignore storage read errors
+  }
   return {};
 }
 
@@ -123,7 +127,9 @@ export default function History() {
             return;
           }
         }
-      } catch { /* 실패 시 2차 시도 */ }
+      } catch {
+        /* 실패 시 2차 시도 */
+      }
 
       // 2차 시도: dhlottery API 직접 호출 (3초 타임아웃)
       try {
@@ -151,14 +157,16 @@ export default function History() {
             }
           }
         }
-      } catch { /* CORS 차단 등 무시 */ }
+      } catch {
+        /* CORS 차단 등 무시 */
+      }
 
       if (!cancelled) { setPrizeLoading(false); setPrizeFailed(true); }
     }
 
     fetchPrize();
     return () => { cancelled = true; };
-  }, [selectedRound]);
+  }, [details, selectedRound]);
 
   useEffect(() => {
     async function loadData() {
@@ -166,10 +174,13 @@ export default function History() {
         setLoading(true);
         setError("");
 
-        const [csvRes, detailRes] = await Promise.all([
-          fetch("/lotto_numbers.csv"),
-          fetch("/lotto_history_details.json").catch(() => null as any),
-        ]);
+        const csvRes = await fetch("/lotto_numbers.csv");
+        let detailRes: Response | null = null;
+        try {
+          detailRes = await fetch("/lotto_history_details.json");
+        } catch {
+          detailRes = null;
+        }
 
         const csvText = await csvRes.text();
 

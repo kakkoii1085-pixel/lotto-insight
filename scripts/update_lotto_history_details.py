@@ -80,7 +80,12 @@ def fetch_prize(session: requests.Session, round_no: int) -> Dict:
 def read_rounds() -> List[int]:
     with open(CSV_FILE, "r", encoding="utf-8-sig", newline="") as f:
         reader = csv.DictReader(f)
-        return sorted(set(int(r["회차"]) for r in reader if r.get("회차", "").isdigit()))
+        rounds: List[int] = []
+        for row in reader:
+            raw = (row.get("회차") or row.get("round") or "").strip()
+            if raw.isdigit():
+                rounds.append(int(raw))
+        return sorted(set(rounds))
 
 
 def load_json(path: str) -> Dict:

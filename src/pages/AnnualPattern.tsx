@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 // ───────────── 타입 ─────────────
 type LottoDraw = { round: number; date: string; numbers: number[]; bonus: number };
@@ -105,7 +105,9 @@ function appendSaved(item: SavedItem) {
   try {
     const list: SavedItem[] = JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
     list.push(item); localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  } catch {}
+  } catch {
+    // ignore localStorage errors
+  }
 }
 
 const GROUP_COLORS = ["#e8f5e9","#fff9c4","#fff3e0","#e3f2fd","#fce4ec","#ede7f6","#e0f7fa","#f1f8e9","#fff8e1","#fbe9e7","#e8eaf6","#f3e5f5","#e0f2f1","#fafafa","#f9fbe7"];
@@ -189,12 +191,6 @@ export default function AnnualPattern() {
   const years      = useMemo(() => yearStats.map(y => y.year), [yearStats]);
 
   // 트렌드 윈도우 기반 예측 점수
-  const filteredForTrend = useMemo(() => {
-    if (trendWindow === "all") return draws;
-    const n = typeof trendWindow === "number" ? trendWindow : 10;
-    return draws.slice(-n);
-  }, [draws, trendWindow]);
-
   const predictionScores = useMemo(
     () => calculatePredictionScores(draws, trendWindow === "all" ? draws.length : typeof trendWindow === "number" ? trendWindow : 10),
     [draws, trendWindow]
@@ -339,11 +335,6 @@ export default function AnnualPattern() {
             const maxFreq = Math.max(...Object.values(currentStat?.freqMap || {}), 1);
             const intensity = freq / maxFreq;
             const mark = ballMarks[n] || "none";
-            const baseColor = ["#1e88e5", "#f57c00", "#00a86b"][
-              ["navy","red","yellow","gray","green"].indexOf(
-                ballClass(n).split(" ")[1]
-              )
-            ];
             return (
               <button
                 key={n}

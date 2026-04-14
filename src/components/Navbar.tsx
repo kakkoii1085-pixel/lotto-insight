@@ -1,16 +1,8 @@
-import { useState, useEffect } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { useState } from "react";
+import { NavLink } from "react-router-dom";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("/analysis");
-  const location = useLocation();
-
-  // Close menu on route change
-  useEffect(() => {
-    setIsMenuOpen(false);
-    setActiveTab(location.pathname);
-  }, [location.pathname]);
 
   const allNavItems = [
     { path: "/analysis", label: "분석", icon: "📊" },
