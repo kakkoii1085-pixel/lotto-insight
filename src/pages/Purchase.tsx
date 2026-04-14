@@ -52,36 +52,43 @@ function normalizeNumbers(value: unknown): number[] {
 }
 
 function normalizeSavedItem(
-  raw: any,
+  raw: Record<string, unknown> | null | undefined,
   fallbackSource?: string
 ): SavedNumberItem | null {
+  const item = raw ?? {};
   const numbers = normalizeNumbers(
-    raw?.numbers ?? raw?.nums ?? raw?.selectedNumbers
+    item.numbers ?? item.nums ?? item.selectedNumbers
   );
   if (numbers.length !== 6) return null;
 
   const source =
-    raw?.source ??
+    item.source ??
     fallbackSource ??
-    (raw?.modeLabel || raw?.note ? "simulator" : "generator");
+    (item.modeLabel || item.note ? "simulator" : "generator");
 
   const createdAtValue =
-    typeof raw?.createdAt === "number"
-      ? new Date(raw.createdAt).toISOString()
-      : raw?.createdAt ?? raw?.date ?? new Date().toISOString();
+    typeof item.createdAt === "number"
+      ? new Date(item.createdAt).toISOString()
+      : typeof item.createdAt === "string"
+        ? item.createdAt
+        : typeof item.date === "string"
+          ? item.date
+          : new Date().toISOString();
+  const idValue =
+    typeof item.id === "string"
+      ? item.id
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}-${numbers.join(
+          "-"
+        )}`;
 
   return {
-    id:
-      raw?.id ??
-      `${Date.now()}-${Math.random().toString(36).slice(2, 9)}-${numbers.join(
-        "-"
-      )}`,
+    id: idValue,
     numbers,
-    bonus: raw?.bonus ?? null,
-    source,
+    bonus: typeof item.bonus === "number" ? item.bonus : null,
+    source: typeof source === "string" ? source : "generator",
     createdAt: createdAtValue,
-    modeLabel: raw?.modeLabel ?? "",
-    note: raw?.note ?? "",
+    modeLabel: typeof item.modeLabel === "string" ? item.modeLabel : "",
+    note: typeof item.note === "string" ? item.note : "",
   };
 }
 
@@ -173,18 +180,28 @@ function parseCsv(text: string): LottoRow[] {
   return rows.sort((a, b) => b.round - a.round);
 }
 
-function getNextSaturdayLabel() {
+function formatDateLabel(date: Date) {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function getNextRoundLabelFromLatest(latestDate: string) {
+  const parsed = new Date(`${latestDate}T00:00:00`);
+  if (!Number.isNaN(parsed.getTime())) {
+    const next = new Date(parsed);
+    next.setDate(parsed.getDate() + 7);
+    return `${formatDateLabel(next)} 추첨예정`;
+  }
+
+  // latestDate 파싱 실패 시 현재 기준 다음 토요일
   const now = new Date();
   const day = now.getDay();
-  const diff = (6 - day + 7) % 7;
+  const diffToSaturday = ((6 - day + 7) % 7) || 7;
   const next = new Date(now);
-  next.setDate(now.getDate() + diff);
-
-  const yyyy = next.getFullYear();
-  const mm = String(next.getMonth() + 1).padStart(2, "0");
-  const dd = String(next.getDate()).padStart(2, "0");
-
-  return `${yyyy}-${mm}-${dd} 추첨예정`;
+  next.setDate(now.getDate() + diffToSaturday);
+  return `${formatDateLabel(next)} 추첨예정`;
 }
 
 function getMatchResult(
@@ -282,9 +299,10 @@ export default function Purchase() {
         setDrawRows(parsed);
 
         if (parsed.length) {
+          const latest = parsed[0];
           const nextRound: VirtualRound = {
-            round: parsed[0].round + 1,
-            date: getNextSaturdayLabel(),
+            round: latest.round + 1,
+            date: getNextRoundLabelFromLatest(latest.date),
           };
           setFutureRound(nextRound);
           setSelectedRound(nextRound.round);

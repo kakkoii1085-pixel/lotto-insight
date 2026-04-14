@@ -787,7 +787,7 @@ export default function Generator() {
       return;
     }
 
-    const createdAt = Date.now();
+    const createdAt = new Date().getTime();
     const score =
       typeof overallScore === "number" ? Math.round(overallScore) : null;
 

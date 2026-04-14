@@ -45,7 +45,7 @@ if errorlevel 1 (
 
 echo.
 echo GitHub에 업로드 중...
-git add public\lotto_numbers.csv public\lotto_numbers.csv.csv
+git add public\lotto_numbers.csv public\lotto_numbers.csv.csv public\lotto_history_details.json
 git commit -m "%ROUND%회 로또 데이터 추가 (%DATE%)"
 git push origin main
 

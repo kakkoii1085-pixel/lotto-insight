@@ -204,12 +204,7 @@ export default function HotNumbers() {
 
   const yearOptions = useMemo(() => getYearOptions(rows), [rows]);
 
-  useEffect(() => {
-    if (!yearOptions.length) return;
-    if (!yearValue) {
-      setYearValue(String(yearOptions[0]));
-    }
-  }, [yearOptions, yearValue]);
+  const selectedYearValue = yearValue || String(yearOptions[0] ?? "");
 
   const effectiveMode = useMemo<RangeMode>(() => {
     if (mode === "all") return "all";
@@ -218,11 +213,11 @@ export default function HotNumbers() {
     if (mode === "recent30") return "recent30";
     if (mode === "recent10") return "recent10";
     if (mode.startsWith("year-")) {
-      const year = Number(yearValue || mode.replace("year-", ""));
+      const year = Number(selectedYearValue || mode.replace("year-", ""));
       return `year-${year}`;
     }
     return "all";
-  }, [mode, yearValue]);
+  }, [mode, selectedYearValue]);
 
   const filteredRows = useMemo(() => {
     return filterRowsByMode(rows, effectiveMode);
@@ -383,14 +378,14 @@ export default function HotNumbers() {
           <div className="sim-year-wrap">
             <button
               className={`sim-chip ${mode.startsWith("year-") ? "active" : ""}`}
-              onClick={() => setMode(`year-${Number(yearValue || yearOptions[0] || 2026)}`)}
+              onClick={() => setMode(`year-${Number(selectedYearValue || 2026)}`)}
             >
               연도 기준
             </button>
 
             <select
               className="sim-year-select"
-              value={yearValue}
+              value={selectedYearValue}
               onChange={(e) => {
                 setYearValue(e.target.value);
                 setMode(`year-${Number(e.target.value)}`);

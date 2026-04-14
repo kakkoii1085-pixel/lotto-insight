@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 // ───────────── 타입 ─────────────
 type LottoDraw = {
@@ -211,22 +211,6 @@ export default function TicketPattern() {
   const poissonMeans = useMemo(() => computePoissonExpected(filteredDraws), [filteredDraws]);
 
   // 열 분석
-  const columnStats = useMemo(() => {
-    const colCounts: Record<number, Record<number, number>> = {};
-    for (let d = 0; d <= 9; d++) {
-      colCounts[d] = {};
-      for (let f = 0; f <= 14; f++) colCounts[d][f] = 0;
-    }
-    filteredDraws.forEach(draw => {
-      draw.numbers.forEach(n => {
-        const col = columnOf(n);
-        const freq = filteredDraws.filter(d => d.numbers.includes(n)).length;
-        colCounts[col][freq] = (colCounts[col][freq] || 0) + 1;
-      });
-    });
-    return colCounts;
-  }, [filteredDraws]);
-
   const years = useMemo(() => {
     const ys = new Set(draws.map(d => d.date.slice(0, 4)));
     return ["ALL", ...Array.from(ys).sort((a, b) => Number(b) - Number(a))];
@@ -367,7 +351,7 @@ export default function TicketPattern() {
           <div className="tp-heatmap-section">
             <h4 className="tp-heatmap-title">패턴 빈도 히트맵</h4>
             <div className="tp-heatmap-grid">
-              {topPatterns.slice(0, 30).map((p, idx) => {
+              {topPatterns.slice(0, 30).map((p) => {
                 const intensity = Math.min(1, p.count / topPatterns[0].count);
                 return (
                   <div
