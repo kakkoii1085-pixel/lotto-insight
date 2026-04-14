@@ -8,16 +8,16 @@ echo ====================================
 echo.
 
 set /p ROUND=회차 번호를 입력하세요 (예: 1219):
-set /p DATE=추첨일을 입력하세요 (예: 2026-04-12):
-set /p N1=1번째 번호:
-set /p N2=2번째 번호:
-set /p N3=3번째 번호:
-set /p N4=4번째 번호:
-set /p N5=5번째 번호:
-set /p N6=6번째 번호:
-set /p BONUS=보너스 번호:
-set /p WINNERS=1등 당첨자 수 (모르면 0):
-set /p AMOUNT=1등 당첨금 (모르면 0, 예: 2000000000):
+set /p DATE=추첨일을 입력하세요 (예: 2026-04-11):
+set /p N1=1번째 번호:1
+set /p N2=2번째 번호:2
+set /p N3=3번째 번호:15
+set /p N4=4번째 번호:28
+set /p N5=5번째 번호:39
+set /p N6=6번째 번호:45
+set /p BONUS=보너스 번호:31
+set /p WINNERS=1등 당첨자 수 (모르면 0):12
+set /p AMOUNT=1등 당첨금 (모르면 0, 예: 2000000000):2508232844
 
 echo.
 echo 입력 내용 확인:
@@ -45,7 +45,7 @@ if errorlevel 1 (
 
 echo.
 echo GitHub에 업로드 중...
-git add public\lotto_numbers.csv public\lotto_numbers.csv.csv
+git add public\lotto_numbers.csv
 git commit -m "%ROUND%회 로또 데이터 추가 (%DATE%)"
 git push origin main
 

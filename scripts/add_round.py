@@ -58,9 +58,10 @@ def main():
     with open(csv_path, "w", encoding="utf-8", newline="\n") as f:
         f.write(new_content)
 
-    # .csv.csv 파일도 동일하게 업데이트
-    with open(csv_path_ext, "w", encoding="utf-8", newline="\n") as f:
-        f.write(new_content)
+    # .csv.csv 파일이 존재하면 동일하게 업데이트 (없으면 무시)
+    if os.path.exists(csv_path_ext):
+        with open(csv_path_ext, "w", encoding="utf-8", newline="\n") as f:
+            f.write(new_content)
 
     print(f"✅ {round_no}회 ({date}) 데이터가 추가되었습니다.")
     print(f"   번호: {numbers[0]} {numbers[1]} {numbers[2]} {numbers[3]} {numbers[4]} {numbers[5]} + 보너스 {bonus}")
