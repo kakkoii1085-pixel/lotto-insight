@@ -3981,7 +3981,7 @@ a {
 
 .history-list-head {
   display: grid;
-  grid-template-columns: 80px 130px minmax(310px, 1fr) 92px 64px;
+  grid-template-columns: 80px 130px minmax(310px, 1fr) 92px 80px;
   gap: 12px;
   padding: 18px 20px 14px;
   font-size: 14px;
@@ -3998,10 +3998,10 @@ a {
 }
 
 .history-sum {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 700;
   color: rgba(255, 220, 100, 0.9);
-  text-align: center;
+  text-align: left;
 }
 
 .history-detail-sum {
@@ -4017,7 +4017,7 @@ a {
 
 .history-row {
   display: grid;
-  grid-template-columns: 80px 130px minmax(310px, 1fr) 92px 64px;
+  grid-template-columns: 80px 130px minmax(310px, 1fr) 92px 80px;
   gap: 12px;
   align-items: center;
   width: 100%;
