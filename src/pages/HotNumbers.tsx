@@ -176,6 +176,9 @@ export default function HotNumbers() {
   const [resultNumbers, setResultNumbers] = useState<number[]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [savedMessage, setSavedMessage] = useState("");
+  const [sumMin, setSumMin] = useState<number>(21);
+  const [sumMax, setSumMax] = useState<number>(255);
+  const [sumError, setSumError] = useState("");
 
   const timersRef = useRef<number[]>([]);
 
@@ -254,8 +257,36 @@ export default function HotNumbers() {
     timersRef.current = [];
   };
 
+  const preGenerate = (
+    candidates: CandidateItem[],
+    minSum: number,
+    maxSum: number,
+    maxRetries = 800
+  ): number[] | null => {
+    for (let i = 0; i < maxRetries; i += 1) {
+      const tempPicked: number[] = [];
+      for (let s = 0; s < 6; s += 1) {
+        const chosen = pickWeightedNumber(candidates, tempPicked);
+        if (chosen == null) break;
+        tempPicked.push(chosen);
+      }
+      if (tempPicked.length === 6) {
+        const sum = tempPicked.reduce((a, b) => a + b, 0);
+        if (sum >= minSum && sum <= maxSum) return tempPicked;
+      }
+    }
+    return null;
+  };
+
   const handleDrawStart = () => {
     if (isDrawing || !top100Candidates.length) return;
+
+    const preGenerated = preGenerate(top100Candidates, sumMin, sumMax);
+    if (!preGenerated) {
+      setSumError(`합계 ${sumMin}~${sumMax} 범위에서 조합을 찾지 못했습니다. 범위를 넓혀주세요.`);
+      return;
+    }
+    setSumError("");
 
     clearTimers();
     setSavedMessage("");
@@ -286,18 +317,16 @@ export default function HotNumbers() {
         timersRef.current.push(timerId);
       }
 
+      const stepCopy = step;
       const finalizeTimerId = window.setTimeout(() => {
-        const chosen = pickWeightedNumber(top100Candidates, picked);
-
-        if (chosen == null) return;
-
+        const chosen = preGenerated[stepCopy];
         picked.push(chosen);
         const sorted = [...picked].sort((a, b) => a - b);
 
         setRollingNumber(chosen);
         setResultNumbers(sorted);
 
-        if (step === 5) {
+        if (stepCopy === 5) {
           const endTimerId = window.setTimeout(() => {
             setRollingNumber(null);
             setIsDrawing(false);
@@ -432,6 +461,39 @@ export default function HotNumbers() {
             최근 10회
           </button>
         </div>
+
+        <div className="sim-sum-row">
+          <span className="sim-sum-label">번호 합계 범위</span>
+          <div className="sim-sum-inputs">
+            <input
+              type="number"
+              className="sim-sum-input"
+              min={21}
+              max={255}
+              value={sumMin}
+              onChange={(e) => {
+                const v = Math.max(21, Math.min(255, Number(e.target.value)));
+                setSumMin(v);
+                setSumError("");
+              }}
+            />
+            <span className="sim-sum-tilde">~</span>
+            <input
+              type="number"
+              className="sim-sum-input"
+              min={21}
+              max={255}
+              value={sumMax}
+              onChange={(e) => {
+                const v = Math.max(21, Math.min(255, Number(e.target.value)));
+                setSumMax(v);
+                setSumError("");
+              }}
+            />
+            <span className="sim-sum-hint">(최소 21 · 최대 255)</span>
+          </div>
+          {sumError && <div className="sim-sum-error">{sumError}</div>}
+        </div>
       </section>
 
       <section className="sim-main-grid">
@@ -490,6 +552,12 @@ export default function HotNumbers() {
 
           <div className="sim-machine-note">
             후보군: {modeLabel} / TOP 100 기준 사용
+            {resultNumbers.length === 6 && (
+              <span className="sim-result-sum">
+                &nbsp;·&nbsp; 합계&nbsp;
+                <strong>{resultNumbers.reduce((a, b) => a + b, 0)}</strong>
+              </span>
+            )}
           </div>
 
           <div className="sim-action-row">
@@ -679,6 +747,72 @@ export default function HotNumbers() {
           flex-wrap: wrap;
           gap: 10px;
           align-items: center;
+        }
+
+        .sim-sum-row {
+          margin-top: 16px;
+          padding-top: 16px;
+          border-top: 1px solid rgba(255,255,255,0.07);
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .sim-sum-label {
+          font-size: 17px;
+          font-weight: 800;
+          color: rgba(232,238,255,0.9);
+          white-space: nowrap;
+        }
+
+        .sim-sum-inputs {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .sim-sum-input {
+          width: 96px;
+          height: 48px;
+          padding: 0 14px;
+          border-radius: 14px;
+          border: 1px solid rgba(137,164,255,0.28);
+          background: rgba(11,18,39,0.95);
+          color: white;
+          font-size: 18px;
+          font-weight: 800;
+          outline: none;
+          text-align: center;
+        }
+
+        .sim-sum-input:focus {
+          border-color: rgba(137,164,255,0.6);
+          box-shadow: 0 0 0 2px rgba(87,123,255,0.18);
+        }
+
+        .sim-sum-tilde {
+          font-size: 22px;
+          font-weight: 900;
+          color: rgba(255,255,255,0.7);
+        }
+
+        .sim-sum-hint {
+          font-size: 14px;
+          color: rgba(200,213,255,0.6);
+        }
+
+        .sim-sum-error {
+          width: 100%;
+          margin-top: 4px;
+          font-size: 15px;
+          font-weight: 700;
+          color: rgba(255,120,100,0.96);
+        }
+
+        .sim-result-sum strong {
+          color: rgba(255,220,100,0.95);
         }
 
         .sim-chip {
