@@ -194,10 +194,12 @@ export default function History() {
 
           if (cols.length < 10) continue;
 
-          const round = Number(cols[1]);
-          const date = cols[2];
-          const nums = cols.slice(3, 9).map((v) => Number(v));
-          const bonus = Number(cols[9]);
+          const round   = Number(cols[1]);
+          const date    = cols[2];
+          const nums    = cols.slice(3, 9).map((v) => Number(v));
+          const bonus   = Number(cols[9]);
+          const winners = Number(cols[11]) || 0;
+          const amount  = Number(cols[12]) || 0;
 
           if (
             !Number.isFinite(round) ||
@@ -207,12 +209,15 @@ export default function History() {
             continue;
           }
 
-          parsed.push({
-            round,
-            date,
-            nums,
-            bonus,
-          });
+          parsed.push({ round, date, nums, bonus });
+
+          // CSV에서 당첨자수/금액 직접 읽어 details에 추가
+          if (winners > 0 || amount > 0) {
+            detailJson[String(round)] = {
+              round,
+              prizes: [{ rank: "1등", amount, winners }],
+            };
+          }
         }
 
         parsed.sort((a, b) => b.round - a.round);
