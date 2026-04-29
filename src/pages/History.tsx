@@ -371,6 +371,7 @@ export default function History() {
             <span className="col-date">추첨일</span>
             <span className="col-numbers">당첨번호</span>
             <span className="col-bonus">보너스</span>
+            <span className="col-sum">합계</span>
           </div>
 
           <div className="history-list-body">
@@ -397,6 +398,10 @@ export default function History() {
 
                   <span className="col-bonus history-bonus-wrap">
                     <span className={getBallClass(row.bonus)}>{row.bonus}</span>
+                  </span>
+
+                  <span className="col-sum history-sum">
+                    {row.nums.reduce((a, b) => a + b, 0)}
                   </span>
                 </button>
               );
@@ -431,6 +436,9 @@ export default function History() {
                   <span className={getBallClass(selectedRow.bonus)}>
                     {selectedRow.bonus}
                   </span>
+                </div>
+                <div className="history-detail-sum">
+                  번호 합계: <strong>{selectedRow.nums.reduce((a, b) => a + b, 0)}</strong>
                 </div>
               </div>
 
